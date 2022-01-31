@@ -17,7 +17,7 @@ Payload format:
 - Payload           {n}
 - CRC16(Poly=0x1021,Init=0x0000)
 
-The RFM69HW module is based on Semtech SX1231H. The nearest target Frequenzy is 868.950012 MHz, the internal AFC is able to take care on this gap.
+The RFM69HW module is based on Semtech SX1231H. The nearest target frequency is 868.950012 MHz, the internal AFC is able to take care on this gap.
 
 Based on Sming 4.5 Framework: [https://github.com/SmingHub/Sming](https://github.com/SmingHub/Sming)
 
