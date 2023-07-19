@@ -3,16 +3,15 @@
 ## Uncomment and change examples:
 
 ## If appropriate, declare which SOCs your project supports
-# COMPONENT_SOC :=
+COMPONENT_SOC := esp32
 
 ## If project doesn't require networking, saves RAM and build time
-DISABLE_NETWORK := 1
+# DISABLE_NETWORK := 1
 
 ## Add your source directories here separated by space
-# COMPONENT_SRCDIRS := app
+COMPONENT_SRCDIRS := app app/SX1231
 # COMPONENT_SRCFILES :=
 # COMPONENT_INCDIRS := include
-
 ## If you require any Libraries list them here
 ARDUINO_LIBRARIES := ArduinoJson6
 
@@ -23,7 +22,7 @@ ARDUINO_LIBRARIES := ArduinoJson6
 # COMPONENT_SUBMODULES :=
 
 ## Append any targets to be built as dependencies of the project, such as generation of additional binary files
-# CUSTOM_TARGETS += 
+# CUSTOM_TARGETS +=
 
 ## Additional object files to be included with the application library
 # EXTRA_OBJ :=
@@ -37,7 +36,7 @@ ARDUINO_LIBRARIES := ArduinoJson6
 
 ## Configure hardware
 # Default is 'standard' (no spiffs), can also provide your own
-#HWCONFIG := spiffs
+HWCONFIG := standard-4m
 
 ## Select source of content for default `spiffs` partition when built
 # SPIFF_FILES = files

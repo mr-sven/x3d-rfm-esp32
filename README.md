@@ -21,7 +21,6 @@ The RFM69HW module is based on Semtech SX1231H. The nearest target frequency is 
 
 Based on Sming 4.5 Framework: [https://github.com/SmingHub/Sming](https://github.com/SmingHub/Sming)
 
-
 ## Wireing
 
 used:
@@ -39,3 +38,14 @@ used:
 | D23   | MOSI  |
 
 [<img src="x3d-rfm-esp32.png" width="400"/>](x3d-rfm-esp32.png)
+
+
+## SDK Config
+
+`Component config -> ESP System Settings`
+
+```bash
+make SMING_ARCH=Esp32 sdk-menuconfig
+...
+make SMING_ARCH=Esp32 Sming-build all
+```
