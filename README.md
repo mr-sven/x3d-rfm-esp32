@@ -19,7 +19,11 @@ Payload format:
 
 The RFM69HW module is based on Semtech SX1231H. The nearest target frequency is 868.950012 MHz, the internal AFC is able to take care on this gap.
 
-Based on Sming 4.5 Framework: [https://github.com/SmingHub/Sming](https://github.com/SmingHub/Sming)
+Based on Sming 5.0 Framework: [https://github.com/SmingHub/Sming](https://github.com/SmingHub/Sming)
+
+X3D Protocol analysis: [X3D-Protocol.md](X3D-Protocol.md)
+
+Tydom Hardware analysis: [Tydom.md](Tydom.md)
 
 ## Wireing
 
@@ -46,6 +50,8 @@ used:
 
 ```bash
 make SMING_ARCH=Esp32 sdk-menuconfig
+...
+make SMING_ARCH=Esp32 ide-vscode
 ...
 make SMING_ARCH=Esp32 Sming-build all
 ```
