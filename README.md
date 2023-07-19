@@ -4,7 +4,7 @@ Note: work in progress
 - Modulation: FSK PCM
 - Frequency: 868.95 MHz
 - FSK Frequency Deviation: 80 kHz
-- 25 us bit time
+- 25 µs bit time
 - 40000 baud
 - based on Semtech SX1211
 - manual CRC
@@ -47,6 +47,8 @@ used:
 ## SDK Config
 
 `Component config -> ESP System Settings`
+
+Due to various errors with pyparsing, use pyparsing version 3.0.9
 
 ```bash
 make SMING_ARCH=Esp32 sdk-menuconfig
