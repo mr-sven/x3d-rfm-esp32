@@ -1,14 +1,17 @@
 # Delta Dore X3D Protocol analysis
 
-The bidirectional X3D protocol is used by various DeltaDore devices and also other vendors are builing assets.
+The bidirectional X3D protocol is used by various DeltaDore devices and also other vendors are building assets.
 
 The Message flow is initiatet by Tydom or thermostate or sensor.
 
-The initiating device sends a loop of 2 up to 5 messages, depending on message content they contain a counting nibble which counts to zero.
+The initiating device sends a loop of 2 up to 5 messages, depending on message content, they contain a counting nibble which counts to zero.
 After the message counts to zero, the actor respondes with it's informations.
 
 The Initiating device sends the request every 17.75 ms until count zero.
 The responding device waites (count + 1) * 18 ms and responds with it's answer in a loop for every 18 ms.
+
+The protocol is mesh based. The maximum number of actors can be 16 in one mesh network.
+The limitation is due to the maximum packet size of 64, on register read and write request, every device gets it's own 16bit data field, so the packet increases by 2 byte each device.
 
 ## RF Specifications
 
@@ -63,7 +66,7 @@ ff <msgNo> <msgType> <flags|headeLen> <header?> <payload?>
 
 ## General Packet Header structure
 
-The first byte containse some bit fields and the length of the header.
+The first byte contains some bit fields and the length of the header.
 The upper 3 bits may contain some flags, the lower 5 bits contains the length of the header.
 
 Known flag `0x20` is set on sensor messages of window open detector and on beacon send continous by Tydom 1.0.
@@ -83,7 +86,7 @@ The next byte defines a mesh network.
 
 The last two bytes contains a checksum for the header. It is an Int16 big endian. It's the negative cross sum starting on header len byte.
 
-The previous last two bytes may contain a message id.
+The previous last two bytes may contain som random message id.
 
 ```
 |---------------------------------- cksum --------------------------------|
@@ -133,3 +136,5 @@ network 40 : 02 82 00 03 08 12 04 00 32 00 00 00 00 00 00 01 04 21  at startup
 
 The first byte of the message payload is counting byte. The lower nibble is used as downcounter from the initiating device.
 Afer the nibble is zero, the responding device can send responds.
+
+WIP WIP WIP
