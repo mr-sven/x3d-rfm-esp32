@@ -33,5 +33,5 @@
 
 #vs code config
 .vscode
-
+*.code-workspace
 out
