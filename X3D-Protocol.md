@@ -17,7 +17,7 @@ The limitation is due to the maximum packet size of 64, on register read and wri
 
 - Modulation: FSK PCM
 - Frequency: 868.95MHz
-- 25 us bit time
+- 25 µs bit time
 - 40000 baud
 - based on Semtech SX1211
 - manual CRC
@@ -85,6 +85,7 @@ The next byte defines a mesh network.
 - `0x85`   network 5
 
 The last two bytes contains a checksum for the header. It is an Int16 big endian. It's the negative cross sum starting on header len byte.
+Based on alanyses this is the only value transfered in big endian.
 
 The previous last two bytes may contain som random message id.
 
@@ -134,7 +135,43 @@ network 40 : 02 82 00 03 08 12 04 00 32 00 00 00 00 00 00 01 04 21  at startup
 
 ## Message Payload
 
+### MsgType 0x01 Standard message
+
 The first byte of the message payload is counting byte. The lower nibble is used as downcounter from the initiating device.
 Afer the nibble is zero, the responding device can send responds.
+
+The playload contains a set of bitfields which contains slots for different functions.
+Every bitfield is 16 bit LE encoded. As maximum of 16 devices per network, every device has its bit slot.
+
+After the counting byte, three bifields follows.
+
+* Transfer slot, what devices should retransmit the package.
+* Transfered slot, what device has retransmitted the package.
+* Target slot, which device should take care of the data.
+
+Then a data action byte follows.
+
+* `0x01` - read single
+* `0x08` - no read/write action
+* `0x09` - write single
+* `0x11` - read multiple
+* `0x19` - write multiple
+
+At next the register address is followed. It is not clear if ther is any grouping, there are always two bytes and maybe some bitflags.
+
+Current known / seen registers:
+* `0x11 0x51` - Unknown
+* `0x15 0x11` - (RO) Current Room Temp
+* `0x15 0x21` - (RO) Current External Temp
+* `0x16 0x11` - (RO) Current Target Temp and status
+* `0x16 0x31` - (WR) Set current Target Temp and mode
+* `0x16 0x41` - (RW) On/Off state
+* `0x16 0x61` - (RW) Party on time in minutes / Holiday time in minutes starting from current time. (Days - 1) * 1440 + Current Time in Minutes
+* `0x16 0x81` - (RW) Freeze Temp
+* `0x16 0x91` - (RW) Night Temp and Day Temp
+* `0x18 0x01` - Unknown
+* `0x19 0x10` - (RO) On time lsb in seconds
+* `0x19 0x90` - (RO) On time msb in seconds
+* `0x1a 0x04` - Unknown
 
 WIP WIP WIP
