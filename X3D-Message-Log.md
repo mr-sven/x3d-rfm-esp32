@@ -46,7 +46,7 @@ Cyclic with its administrative device id:
 
 Register Network 4 with no devices
 ```
-req: 26 FF ** 02 0C ****** 84 859800 #### qqqq 04 0000 0000 1FFF 0000 0000 E0000001FFFFFF1CDE
+req: 26 FF ** 02 0C ****** 84 859800 #### qqqq 04 0000 0000 1FFF 0000 0000 E0 000001FFFFFF1CDE
 ```
 
 Register Network 4 with one new device. The new device puts a random value in first response marked with `r`. This value is used in the second request.
@@ -59,6 +59,18 @@ res: 26 FF ** 02 0C ****** 84 859800 #### qqqq 40 0000 0100 1FFF 0000 rrrr E5 00
 
 req: 26 FF ** 02 0C ****** 84 859800 #### qqqq 04 0100 0000 1FFF 0100 0000 E0 000001FFFFFF1CDE
 res: 26 FF ** 02 0C ****** 84 859800 #### qqqq 40 0100 0100 1FFF 0100 0000 E0 000001FFFFFF1CDE
+```
+
+Register Network 4, with one device already assigned
+```
+req: 26 FF ** 02 0C ****** 84 859800 #### qqqq 04 0100 0000 1FFF 0100 0000 E0 000001FFFFFF1CDE
+res: 26 FF ** 02 0C ****** 84 859800 #### qqqq 20 0100 0100 1FFF 0100 0000 E0 000001FFFFFF1CDE
+
+req: 26 FF ** 02 0C ****** 84 859800 #### qqqq 04 0100 0000 1FFF 0100 0000 E0 000001FFFFFF1CDE
+res: 26 FF ** 02 0C ****** 84 859800 #### qqqq 20 0100 0100 1FFF 0100 0000 E0 000001FFFFFF1CDE
+
+req: 26 FF ** 02 0C ****** 84 859800 #### qqqq 04 0100 0000 1FFF 0100 0000 E0 000001FFFFFF1CDE
+res: 26 FF ** 02 0C ****** 84 859800 #### qqqq 20 0100 0100 1FFF 0100 0000 E0 000001FFFFFF1CDE
 ```
 
 Register Network 5 with no devices
