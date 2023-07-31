@@ -42,6 +42,15 @@ Cyclic with its administrative device id:
 13 FF ** 00 2D ****** 00 00 8201000000 qqqq   Contact not changed
 ```
 
+## Type 1 messages send from Thermostate
+
+Cyclic message from Thermostate containing the current room temperature
+```
+req: 21 FF ** 01 0F ****** 00 059808 00 D708 #### qqqq 01 0100 0000 0100 08 0000 0000
+res: 21 FF ** 01 0F ****** 00 059808 00 D708 #### qqqq 10 0100 0100 0100 08 0000 0100
+D708 = 0x08D7 = 2263 / 100 = 22.63 °C
+```
+
 ## Type 2 messages send from Tydom 1.0
 
 Register Network 4 with no devices

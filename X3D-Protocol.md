@@ -161,8 +161,10 @@ At next the register address is followed. It is not clear if ther is any groupin
 
 Current known / seen registers:
 * `0x11 0x51` - Unknown
+* `0x14 0x01` - Unknown
 * `0x15 0x11` - (RO) Current Room Temp
 * `0x15 0x21` - (RO) Current External Temp
+* `0x16 0x01` - Unknown
 * `0x16 0x11` - (RO) Current Target Temp and status
 * `0x16 0x31` - (WR) Set current Target Temp and mode
 * `0x16 0x41` - (RW) On/Off state
