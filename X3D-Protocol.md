@@ -166,6 +166,7 @@ Current known / seen registers:
 * `0x15 0x21` - (RO) Current External Temp
 * `0x16 0x01` - Unknown
 * `0x16 0x11` - (RO) Current Target Temp and status
+* `0x16 0x21` - Unknown
 * `0x16 0x31` - (WR) Set current Target Temp and mode
 * `0x16 0x41` - (RW) On/Off state
 * `0x16 0x61` - (RW) Party on time in minutes / Holiday time in minutes starting from current time. (Days - 1) * 1440 + Current Time in Minutes
@@ -176,4 +177,75 @@ Current known / seen registers:
 * `0x19 0x90` - (RO) On time msb in seconds
 * `0x1a 0x04` - Unknown
 
-WIP WIP WIP
+Then a acknowledge slot follows, where every ack device sets its bit.
+Now the 2 byte of data for each device follows or is updated on a read command.
+
+### Register 15 11/21
+
+Room Temp and External Temp
+
+3E 06 = 0x063e = 1598 / 100 = 15.98 °C
+
+### Register 16 11
+
+Current Target Temp and status
+
+The first byte contains the current target Temperature in 0.5 °C Steps from 0 °C:
+
+* 0x30 = 48 = 24.0 °C
+* 0x2f = 47 = 23.5 °C
+* 0x26 = 38 = 19.0 °C
+
+The second byte contains a enum set of flags:
+
+* 0x10 = 0b00010000 = Heater current on
+* 0x20 = 0b00100000 = Heater disabled
+* 0x80 = 0b10000000 = Window Open
+
+### Register 16 31
+
+Writes the current target temperatur and the mode. Currently only seen to be written.
+
+The first byte contains the current target Temperature in 0.5 °C Steps from 0 °C.
+
+The second byte is a enum containing the current mode:
+* 0 = Manual mode
+* 2 = Defrost mode
+* 7 = Automatic mode
+* 8 = Timed manual mode (party or holiday)
+
+### Register 16 41
+
+Sets or gets the current on / off state.
+
+* 0x39 0x07 = on
+* 0x38 0x07 = off
+
+### Register 16 61
+
+Contains the time in minutes of the Timed manual mode.
+
+For party time it contains the minutes left in the party mode.
+
+For holidays the formular is: (Days - 1) * 1440 + Current Time in Minutes.
+
+### Register 16 81
+
+The first byte contains the defrost temperature: 0x0e = 7 °C.
+
+The second byte is unknown.
+
+### Register 16 91
+
+Store for Day & Night Temp.
+
+The first byte contains the night temperature: 0x26 = 19 °C.
+
+The second byte contains the day temperature: 0x2f = 23.5 °C.
+
+### Register 19 10/90
+
+Contains the overall time in seconds the heater was on as uint32.
+
+* 19 10 contains the lsb
+* 19 90 contains the msb
