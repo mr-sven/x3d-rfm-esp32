@@ -1,6 +1,6 @@
 # X3D Message Log
 
-To focus more on relewant data some random or known values are replaced by some chars.
+To focus more on relevant data some random or known values are replaced by some chars.
 
 The following log omits the crc sum.
 
@@ -42,9 +42,9 @@ Cyclic with its administrative device id:
 13 FF ** 00 2D ****** 00 00 8201000000 qqqq   Contact not changed
 ```
 
-## Type 1 messages send from Thermostate
+## Type 1 messages send from Thermostat
 
-Cyclic message from Thermostate containing the current room temperature
+Cyclic message from Thermostat containing the current room temperature
 ```
 req: 21 FF ** 01 0F ****** 00 059808 00 D708 #### qqqq 01 0100 0000 0100 08 0000 0000
 res: 21 FF ** 01 0F ****** 00 059808 00 D708 #### qqqq 10 0100 0100 0100 08 0000 0100
@@ -87,7 +87,7 @@ Register Network 5 with no devices
 req: 26 FF ** 02 0C ****** 85 859800 #### qqqq 04 0000 0000 1FFF 0000 0000 E0 000001FFFFFF1CDE
 ```
 
-## Type 2 messages send from Thermostate
+## Type 2 messages send from Thermostat
 
 Register one new device. The new device puts a random value in first response marked with `r`. This value is used in the second request.
 ```
@@ -115,7 +115,7 @@ req: 1C FF ** 03 0C ****** 84 059800 #### qqqq 04 0100 0000 FF0004E0FF
 res: 1C FF ** 03 0C ****** 84 059800 #### qqqq 30 0100 0100 FF0004E0FF
 ```
 
-The following message is send from Thermostate to device slot 0
+The following message is send from Thermostat to device slot 0
 ```
 req: 1C FF ** 03 0C ****** 00 059800 #### qqqq 04 0100 0000 FF0000E0FF
 res: 1C FF ** 03 0C ****** 00 059800 #### qqqq 30 0100 0100 FF0000E0FF

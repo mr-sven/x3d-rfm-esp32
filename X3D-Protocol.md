@@ -2,7 +2,7 @@
 
 The bidirectional X3D protocol is used by various DeltaDore devices and also other vendors are building assets.
 
-The Message flow is initiatet by Tydom or thermostate or sensor.
+The Message flow is initiatet by Tydom or thermostat or sensor.
 
 The initiating device sends a loop of 2 up to 5 messages, depending on message content, they contain a counting nibble which counts to zero.
 After the message counts to zero, the actor respondes with it's informations.
@@ -85,13 +85,13 @@ The next byte defines a mesh network.
 - `0x85`   network 5
 
 The last two bytes contains a checksum for the header. It is an Int16 big endian. It's the negative cross sum starting on header len byte.
-Based on alanyses this is the only value transfered in big endian.
+Based on analyses this is the only value transfered in big endian.
 
-The previous last two bytes may contain som random message id.
+The previous last two bytes may contain some random message id.
 
 ```
-|---------------------------------- cksum --------------------------------|
-<flags|headeLen> <deviceId> <network> <headerPayload> <messageId?> <cksum>
+|---------------------------------- cksum -------------------------|
+ <flags|headeLen> <deviceId> <network> <headerPayload> <messageId?> <cksum>
 ```
 
 ## Header Payload
@@ -138,7 +138,7 @@ network 40 : 02 82 00 03 08 12 04 00 32 00 00 00 00 00 00 01 04 21  at startup
 ### MsgType 0x01 Standard message
 
 The first byte of the message payload is counting byte. The lower nibble is used as downcounter from the initiating device.
-Afer the nibble is zero, the responding device can send responds.
+After the nibble is zero, the responding device can send responds.
 
 The playload contains a set of bitfields which contains slots for different functions.
 Every bitfield is 16 bit LE encoded. As maximum of 16 devices per network, every device has its bit slot.
@@ -157,7 +157,7 @@ Then a data action byte follows.
 * `0x11` - read multiple
 * `0x19` - write multiple
 
-At next the register address is followed. It is not clear if ther is any grouping, there are always two bytes and maybe some bitflags.
+At next the register address is followed. It is not clear if there is any grouping, there are always two bytes and maybe some bitflags.
 
 Current known / seen registers:
 * `0x11 0x51` - Unknown

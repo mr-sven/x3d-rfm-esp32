@@ -13,6 +13,8 @@
 * bootReference P21800012
 * bootVersion 01.00.03
 
+### Chips
+
 * STM32F427 - Core CPU
 * 26F032B - 32 Mbit Serial Quad I/O (SQI) Flash Memory
 * 24M01RP - 1-Mbit serial I²C bus EEPROM
