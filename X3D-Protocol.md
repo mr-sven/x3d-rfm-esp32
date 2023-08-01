@@ -133,9 +133,7 @@ network 40 : 02 82 00 03 08 12 04 00 32 00 00 00 00 00 00 01 04 21  at startup
 05 98 00 <messageId>
 ```
 
-## Message Payload
-
-### MsgType 0x01 Standard message
+## Message Payload MsgType 0x01 Standard message
 
 The first byte of the message payload is counting byte. The lower nibble is used as downcounter from the initiating device.
 After the nibble is zero, the responding device can send responds.
@@ -179,6 +177,120 @@ Current known / seen registers:
 
 Then a acknowledge slot follows, where every ack device sets its bit.
 Now the 2 byte of data for each device follows or is updated on a read command.
+
+```
+<cnt> <tx> <txAck> <target> <action> <register> <targetAck> <dataDevice0> ... <dataDeviceN>
+```
+
+### Mesh message flow
+
+```
++---+                  +---+          +---+
+| I |                  | 1 |          | 2 |
++---+                  +---+          +---+
+  | --- 2-5x --- #1 ---> |              |
+  | <------- #2 -------- | ---- #2 ---> |
+  |                      | <--- #3 ---- |
+  | <------- #4 -------- | ---- #4 ---> |
+  |                      | <--- #5 ---- |
+  | <------- #6 -------- | ---- #6 ---> |
+  |                      | <--- #7 ---- |
+```
+
+The counting byte and bitslots are set in the following manner. The register address is represented as `rrrr`, the data for or from device 1 as `xxxx` and for device 2 `yyyy`.
+The number of data slots increments with each assigned device.
+
+On response messages the counting byte is used also to identify the sending device. The higher nibble contains the message count and the lower nibble contains the number of the sending device.
+
+TX: All, Read: Device 1
+```
+#1: 04 0300 0000 0100 01 rrrr 0000 0000
+    03 0300 0000 0100 01 rrrr 0000 0000
+    02 0300 0000 0100 01 rrrr 0000 0000
+    01 0300 0000 0100 01 rrrr 0000 0000
+    00 0300 0000 0100 01 rrrr 0000 0000
+#2: 10 0300 0100 0100 01 rrrr 0100 xxxx
+#3: 11 0300 0300 0100 01 rrrr 0100 xxxx
+#4: 20 0300 0300 0100 01 rrrr 0100 xxxx
+#5: 21 0300 0300 0100 01 rrrr 0100 xxxx
+#6: 30 0300 0300 0100 01 rrrr 0100 xxxx
+#7: 31 0300 0300 0100 01 rrrr 0100 xxxx
+```
+
+TX: All, Read: Device 2
+```
+#1: 04 0300 0000 0200 11 rrrr 0000 0000 0000
+    03 0300 0000 0200 11 rrrr 0000 0000 0000
+    02 0300 0000 0200 11 rrrr 0000 0000 0000
+    01 0300 0000 0200 11 rrrr 0000 0000 0000
+    00 0300 0000 0200 11 rrrr 0000 0000 0000
+#2: 10 0300 0100 0200 11 rrrr 0000 0000 0000
+#3: 11 0300 0300 0200 11 rrrr 0200 0000 yyyy
+#4: 20 0300 0300 0200 11 rrrr 0200 0000 yyyy
+#5: 21 0300 0300 0200 11 rrrr 0200 0000 yyyy
+#6: 30 0300 0300 0200 11 rrrr 0200 0000 yyyy
+#7: 31 0300 0300 0200 11 rrrr 0200 0000 yyyy
+```
+
+TX: All, Read: All
+```
+#1: 04 0300 0000 0300 11 rrrr 0000 0000 0000
+    03 0300 0000 0300 11 rrrr 0000 0000 0000
+    02 0300 0000 0300 11 rrrr 0000 0000 0000
+    01 0300 0000 0300 11 rrrr 0000 0000 0000
+    00 0300 0000 0300 11 rrrr 0000 0000 0000
+#2: 10 0300 0100 0300 11 rrrr 0100 xxxx 0000
+#3: 11 0300 0300 0300 11 rrrr 0300 xxxx yyyy
+#4: 20 0300 0300 0300 11 rrrr 0300 xxxx yyyy
+#5: 21 0300 0300 0300 11 rrrr 0300 xxxx yyyy
+#6: 30 0300 0300 0300 11 rrrr 0300 xxxx yyyy
+#7: 31 0300 0300 0300 11 rrrr 0300 xxxx yyyy
+```
+
+TX: All, Write: Device 1
+```
+#1: 04 0300 0000 0100 09 rrrr 0000 xxxx
+    03 0300 0000 0100 09 rrrr 0000 xxxx
+    02 0300 0000 0100 09 rrrr 0000 xxxx
+    01 0300 0000 0100 09 rrrr 0000 xxxx
+    00 0300 0000 0100 09 rrrr 0000 xxxx
+#2: 10 0300 0100 0100 09 rrrr 0100 xxxx
+#3: 11 0300 0300 0100 09 rrrr 0100 xxxx
+#4: 20 0300 0300 0100 09 rrrr 0100 xxxx
+#5: 21 0300 0300 0100 09 rrrr 0100 xxxx
+#6: 30 0300 0300 0100 09 rrrr 0100 xxxx
+#7: 31 0300 0300 0100 09 rrrr 0100 xxxx
+```
+
+TX: All, Write: Device 2
+```
+#1: 04 0300 0000 0200 19 rrrr 0000 0000 yyyy
+    03 0300 0000 0200 19 rrrr 0000 0000 yyyy
+    02 0300 0000 0200 19 rrrr 0000 0000 yyyy
+    01 0300 0000 0200 19 rrrr 0000 0000 yyyy
+    00 0300 0000 0200 19 rrrr 0000 0000 yyyy
+#2: 10 0300 0100 0200 19 rrrr 0000 0000 yyyy
+#3: 11 0300 0300 0200 19 rrrr 0200 0000 yyyy
+#4: 20 0300 0300 0200 19 rrrr 0200 0000 yyyy
+#5: 21 0300 0300 0200 19 rrrr 0200 0000 yyyy
+#6: 30 0300 0300 0200 19 rrrr 0200 0000 yyyy
+#7: 31 0300 0300 0200 19 rrrr 0200 0000 yyyy
+```
+
+TX: All, Write: All
+```
+#1: 04 0300 0000 0300 19 rrrr 0000 xxxx yyyy
+    03 0300 0000 0300 19 rrrr 0000 xxxx yyyy
+    02 0300 0000 0300 19 rrrr 0000 xxxx yyyy
+    01 0300 0000 0300 19 rrrr 0000 xxxx yyyy
+    00 0300 0000 0300 19 rrrr 0000 xxxx yyyy
+#2: 10 0300 0100 0300 19 rrrr 0100 xxxx yyyy
+#3: 11 0300 0300 0300 19 rrrr 0300 xxxx yyyy
+#4: 20 0300 0300 0300 19 rrrr 0300 xxxx yyyy
+#5: 21 0300 0300 0300 19 rrrr 0300 xxxx yyyy
+#6: 30 0300 0300 0300 19 rrrr 0300 xxxx yyyy
+#7: 31 0300 0300 0300 19 rrrr 0300 xxxx yyyy
+```
 
 ### Register 15 11/21
 
@@ -249,3 +361,7 @@ Contains the overall time in seconds the heater was on as uint32.
 
 * 19 10 contains the lsb
 * 19 90 contains the msb
+
+## Message Payload MsgType 0x02 Pairing message
+
+The message payload is similar to message type 1
