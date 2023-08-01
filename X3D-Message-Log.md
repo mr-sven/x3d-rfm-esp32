@@ -42,6 +42,23 @@ Cyclic with its administrative device id:
 13 FF ** 00 2D ****** 00 00 8201000000 qqqq   Contact not changed
 ```
 
+## Type 1 messages send from Tydom 1.0
+
+Unpair device No. 3 (0b1000)
+```
+1E FF ** 01 0C ****** 84 059800 #### qqqq 04 0700 0000 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 03 0700 0000 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 02 0700 0000 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 01 0700 0000 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 00 0700 0000 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 10 0700 0100 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 12 0700 0400 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 22 0700 0400 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 20 0700 0500 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 30 0700 0500 0400 00 E000 0000
+1E FF ** 01 0C ****** 84 059800 #### qqqq 32 0700 0400 0400 00 E000 0000
+```
+
 ## Type 1 messages send from Thermostat
 
 Cyclic message from Thermostat containing the current room temperature
