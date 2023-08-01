@@ -159,20 +159,20 @@ At next the register address is followed. It is not clear if there is any groupi
 
 Current known / seen registers:
 * `0x11 0x51` - Unknown
-* `0x14 0x01` - Unknown
-* `0x15 0x11` - (RO) Current Room Temp
-* `0x15 0x21` - (RO) Current External Temp
+* `0x14 0x01` - (w) Start pairing mode
+* `0x15 0x11` - (r) Current Room Temp
+* `0x15 0x21` - (r) Current External Temp
 * `0x16 0x01` - Unknown
-* `0x16 0x11` - (RO) Current Target Temp and status
-* `0x16 0x21` - Unknown
-* `0x16 0x31` - (WR) Set current Target Temp and mode
-* `0x16 0x41` - (RW) On/Off state
-* `0x16 0x61` - (RW) Party on time in minutes / Holiday time in minutes starting from current time. (Days - 1) * 1440 + Current Time in Minutes
-* `0x16 0x81` - (RW) Freeze Temp
-* `0x16 0x91` - (RW) Night Temp and Day Temp
+* `0x16 0x11` - (r) Current Target Temp and status
+* `0x16 0x21` - (r) Error status
+* `0x16 0x31` - (w) Set current Target Temp and mode
+* `0x16 0x41` - (r/w) On/Off state
+* `0x16 0x61` - (r/w) Party on time in minutes / Holiday time in minutes starting from current time. (Days - 1) * 1440 + Current Time in Minutes
+* `0x16 0x81` - (r/w) Freeze Temp
+* `0x16 0x91` - (r/w) Night Temp and Day Temp
 * `0x18 0x01` - Unknown
-* `0x19 0x10` - (RO) On time lsb in seconds
-* `0x19 0x90` - (RO) On time msb in seconds
+* `0x19 0x10` - (r) On time lsb in seconds
+* `0x19 0x90` - (r) On time msb in seconds
 * `0x1a 0x04` - Unknown
 
 Then a acknowledge slot follows, where every ack device sets its bit.
@@ -292,6 +292,10 @@ TX: All, Write: All
 #7: 31 0300 0300 0300 19 rrrr 0300 xxxx yyyy
 ```
 
+### Register 14 01
+
+Writes zero to one device will start the pairing mode on the target device.
+
 ### Register 15 11/21
 
 Room Temp and External Temp
@@ -313,6 +317,15 @@ The second byte contains a enum set of flags:
 * 0x10 = 0b00010000 = Heater current on
 * 0x20 = 0b00100000 = Heater disabled
 * 0x80 = 0b10000000 = Window Open
+
+### Register 16 21
+
+The first byte is unknown.
+
+The second byte:
+
+ * 0 = OK
+ * 1 = Error room temp sensor
 
 ### Register 16 31
 
