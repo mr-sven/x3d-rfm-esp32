@@ -325,7 +325,7 @@ The second byte contains a enum set of flags:
 
 * 0x10 = 0b00010000 = Heater current on
 * 0x20 = 0b00100000 = Heater disabled
-* 0x80 = 0b10000000 = Sensor status available -> Register 16 21
+* 0x80 = 0b10000000 = Sensor status available -> Register 16 21, if not set, assume register is zero
 
 ### Register 16 21
 
