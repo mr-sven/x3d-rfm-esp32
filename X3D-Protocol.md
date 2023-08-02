@@ -119,6 +119,7 @@ network 40 : 02 82 00 03 08 12 04 00 32 00 00 00 00 00 00 01 04 21  at startup
 ```
 05 98 00 <messageId>
 05 98 08 00 3E 06 <messageId>     3E 06 = 0x063e = 1598 / 100 = 15.98 °C room temperature
+15 98 ....                        Battery low, affects register 16 11 and 16 21
 ```
 
 ### MsgType 0x02 Pairing message
@@ -324,16 +325,16 @@ The second byte contains a enum set of flags:
 
 * 0x10 = 0b00010000 = Heater current on
 * 0x20 = 0b00100000 = Heater disabled
-* 0x80 = 0b10000000 = Window Open
+* 0x80 = 0b10000000 = Sensor status available -> Register 16 21
 
 ### Register 16 21
 
-The first byte is unknown.
+Sensor status register, 16bit le enum set.
 
-The second byte:
-
- * 0 = OK
- * 1 = Error room temp sensor
+* 0x0000 = ok
+* 0x0002 = Window/Contact open
+* 0x0100 = Error no room temp sensor
+* 0x1000 = Error room temp sensor battery
 
 ### Register 16 31
 
