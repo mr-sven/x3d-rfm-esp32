@@ -36,7 +36,7 @@ ARDUINO_LIBRARIES := ArduinoJson6
 
 ## Configure hardware
 # Default is 'standard' (no spiffs), can also provide your own
-HWCONFIG := standard-4m
+# HWCONFIG := standard
 
 ## Select source of content for default `spiffs` partition when built
 # SPIFF_FILES = files

@@ -6,6 +6,6 @@ ifndef SMING_HOME
 $(error SMING_HOME is not set: please configure it as an environment variable)
 endif
 
-SMING_ARCH := Esp32
+SMING_SOC := esp32
 
 include $(SMING_HOME)/project.mk

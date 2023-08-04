@@ -54,11 +54,33 @@ void rfmIrq(void)
 #endif
 }
 
+#if USE_WIFI
+// Will be called when WiFi station was connected to AP
+void connectOk(IpAddress ip, IpAddress mask, IpAddress gateway)
+{
+    Serial << _F("Wifi connected with ") << ip << endl;
+}
+
+// Will be called when WiFi station was disconnected
+void connectFail(const String& ssid, MacAddress bssid, WifiDisconnectReason reason)
+{
+    Serial << _F("Wifi disconnect from: ") << ssid << _F(" reason: ") << WifiEvents.getDisconnectReasonDesc(reason) << endl;
+    System.queueCallback([](void* param) {
+        delay(10000);
+        WifiStation.connect();
+    });
+}
+#endif
+
+
 void init()
 {
     Serial.setTxBufferSize(2048);
     Serial.setTxWait(false);
     Serial.begin(SERIAL_BAUD_RATE);
+    Serial.systemDebugOutput(true);
+
+    Serial << _F("== INIT START ==") << endl;
 
     RFM_Spi.setup(SpiBus::VSPI, RFM_SPI_PINS);
     sx = new SX1231::Interface(RFM69_CS, RFM69_IRQ, &RFM_Spi);
@@ -92,9 +114,17 @@ void init()
     sx->continuousDagc(SX1231::ContinuousDagc::ImprovedMarginAfcLowBetaOn0);
     sx->mode(SX1231::Mode::Standby);
     sx->paLevel(false, true, true, 23);
+    sx->receiveBegin();
+
+#if USE_WIFI
+    WifiAccessPoint.enable(false);
+    WifiStation.enable(true);
+    WifiStation.config(_F(WIFI_SSID), _F(WIFI_PWD));
+    WifiEvents.onStationGotIP(connectOk);
+    WifiEvents.onStationDisconnect(connectFail);
+#endif
 
     Serial << _F("== INIT FINISH ==") << endl;
-    sx->receiveBegin();
 
 #if BLINK_ALIVE_LED
     pinMode(LED_PIN, OUTPUT);
