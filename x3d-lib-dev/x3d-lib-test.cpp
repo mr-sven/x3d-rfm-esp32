@@ -2,6 +2,51 @@
 #include <iomanip>
 #include "x3d.h"
 
+int process_pairing_message(uint8_t* buffer, uint16_t pairingId, uint8_t * slot, uint8_t replyCnt)
+{
+    int payloadIndex = (buffer[X3D_IDX_HEADER_LEN] & X3D_HEADER_LENGTH_MASK) + X3D_IDX_HEADER_LEN;
+    uint8_t pairingStatus = buffer[payloadIndex + X3D_OFF_PAIR_STATE];
+    uint8_t targetSlotNo = buffer[payloadIndex + X3D_OFF_PAIR_TARGET_SLOT_NO] & 0x0f; // drop higher nibble
+    uint16_t currentPairingId;
+    read_le_u16(&currentPairingId, buffer, payloadIndex + X3D_OFF_PAIR_PIN);
+
+    if (*slot == 0 &&            // unpaired
+        pairingId != 0 &&        // pairing pin id
+        currentPairingId == 0 && // new pairing request
+        pairingStatus == X3D_PAIR_STATE_OPEN)
+    {
+        write_le_u16(pairingId, buffer, payloadIndex + X3D_OFF_PAIR_PIN);
+        set_retrans_slot(buffer, payloadIndex, replyCnt, targetSlotNo);
+        return X3D_PAIR_RESULT_RET_PIN;
+    }
+    else if (*slot == 0 &&        // unpaired
+        pairingId != 0 &&         // pairing pin id
+        currentPairingId == pairingId && // new pairing request
+        pairingStatus == X3D_PAIR_STATE_PINNED)
+    {
+        write_le_u16(pairingId, buffer, payloadIndex + X3D_OFF_PAIR_PIN);
+        set_retrans_slot(buffer, payloadIndex, replyCnt, targetSlotNo);
+        *slot = targetSlotNo;
+        return X3D_PAIR_RESULT_PIN_VALID;
+    }
+    else if (pairingId == 0 && is_retrans_set(buffer, payloadIndex, *slot)) // pairing pin zero, so is paired
+    {
+        set_retrans_slot(buffer, payloadIndex, replyCnt, *slot);
+        return X3D_PAIR_RESULT_RETRANS;
+    }
+
+    return -1;
+}
+
+void hexToBytes(const std::string& data, uint8_t* buffer)
+{
+    for (int i = 0; i < data.length(); i += 2)
+    {
+        std::string byteString = data.substr(i, 2);
+        buffer[i / 2] = (uint8_t)strtol(byteString.c_str(), NULL, 16);
+    }
+}
+
 int main()
 {
     std::cout << "Hello World!\n";
@@ -56,4 +101,41 @@ int main()
         replyCnt--;
 
     } while (replyCnt >= 0);
+
+
+        /*
+
+    std::string line;
+    std::ifstream infile("data.txt");
+
+    uint16_t pairId = 0x1234;
+    uint8_t slot = 0;
+
+    while (std::getline(infile, line))
+    {
+        if (line.length() > 128)
+        {
+            continue;
+        }
+        hexToBytes(line, buffer);
+        int res = process_pairing_message(buffer, pairId, &slot, 1);
+        switch (res)
+        {
+        case X3D_PAIR_RESULT_PIN_VALID:
+            pairId = 0;
+            break;
+        // debug reset pair
+        case X3D_PAIR_RESULT_RETRANS:
+            pairId = 0x1234;
+            slot = 0;
+            break;
+
+        }
+
+        for (int i = 0; i < 64; i++)
+        {
+            std::cout << " " << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i];
+        }
+        std::cout << std::dec << std::endl;
+    }*/
 }
