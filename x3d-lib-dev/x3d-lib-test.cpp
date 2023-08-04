@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include "x3d.h"
-
+/*
 int process_pairing_message(uint8_t* buffer, uint16_t pairingId, uint8_t * slot, uint8_t replyCnt)
 {
     int payloadIndex = (buffer[X3D_IDX_HEADER_LEN] & X3D_HEADER_LENGTH_MASK) + X3D_IDX_HEADER_LEN;
@@ -36,7 +36,7 @@ int process_pairing_message(uint8_t* buffer, uint16_t pairingId, uint8_t * slot,
     }
 
     return -1;
-}
+}*/
 
 void hexToBytes(const std::string& data, uint8_t* buffer)
 {
@@ -45,6 +45,16 @@ void hexToBytes(const std::string& data, uint8_t* buffer)
         std::string byteString = data.substr(i, 2);
         buffer[i / 2] = (uint8_t)strtol(byteString.c_str(), NULL, 16);
     }
+}
+
+void print_buffer(uint8_t* buffer)
+{
+    int bufsize = buffer[0];
+    for (int i = 0; i < bufsize; i++)
+    {
+        std::cout << " " << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i];
+    }
+    std::cout << std::dec << std::endl;
 }
 
 int main()
@@ -56,13 +66,16 @@ int main()
     uint8_t msgNo = 1;
     uint16_t msgId = 0x1111;
     int replyCnt = 4;
+    uint16_t transferSlotMask = 0x0000;
+    uint16_t targetSlotMask = 0x0001;
+
 
     x3d_init_message(buffer, deviceId, 0x00);
 
     /* Pairing messages
     uint8_t extHeader[] = {0x98, 0x00};
     int payloadIndex = x3d_prepare_message_header(buffer, &msgNo, X3D_MSG_TYPE_PAIRING, 0, 0x85, extHeader, sizeof(extHeader), msgId);
-    x3d_set_message_retrans(buffer, payloadIndex, replyCnt, 0x0000);
+    x3d_set_message_retrans(buffer, payloadIndex, replyCnt, transferSlotMask);
 
     // x3d_set_pairing_data(buffer, payloadIndex, 0, 0, X3D_PAIR_STATE_OPEN);
     x3d_set_pairing_data(buffer, payloadIndex, 0, 0x1234, X3D_PAIR_STATE_PINNED);
@@ -71,33 +84,30 @@ int main()
     /* Beacon message
     uint8_t extHeader[] = {0x98, 0x00};
     int payloadIndex = x3d_prepare_message_header(buffer, &msgNo, X3D_MSG_TYPE_BEACON, 0, 0x05, extHeader, sizeof(extHeader), msgId);
-    x3d_set_message_retrans(buffer, payloadIndex, replyCnt, 0x0000);
+    x3d_set_message_retrans(buffer, payloadIndex, replyCnt, targetSlotMask);
     x3d_set_beacon_data(buffer, payloadIndex, 0);
     // */
 
-    //* Sensor message
+    /* Sensor message
     uint8_t extHeader[] = { 0x82, 0x00, 0x03, 0x08, 0x12, 0x04, 0x00, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x04, 0x21 };
     int payloadIndex = x3d_prepare_message_header(buffer, &msgNo, X3D_MSG_TYPE_SENSOR, X3D_HEADER_FLAG_NO_RESPONSE, 0x02, extHeader, sizeof(extHeader), 0);
     x3d_set_crc(buffer);
     // */
 
-    /* Standard message
+    //* Standard message
+    transferSlotMask = 0x000F;
+    targetSlotMask = 0x0008;
     uint8_t extHeader[] = {0x98, 0x00};
     int payloadIndex = x3d_prepare_message_header(buffer, &msgNo, X3D_MSG_TYPE_STD, 0, 0x05, extHeader, sizeof(extHeader), msgId);
-    x3d_set_message_retrans(buffer, payloadIndex, replyCnt, 0x0000);
-    //x3d_set_beacon_data(buffer, payloadIndex, 0);
+    x3d_set_message_retrans(buffer, payloadIndex, replyCnt, transferSlotMask);
+    x3d_set_register_read(buffer, payloadIndex, targetSlotMask, 0x16, 0x11);
     // */
 
     do
     {
-        x3d_set_message_retrans(buffer, payloadIndex, replyCnt, 0x0000);
+        x3d_set_message_retrans(buffer, payloadIndex, replyCnt, transferSlotMask);
         x3d_set_crc(buffer);
-
-        for (int i = 0; i < 64; i++)
-        {
-            std::cout << " " << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i];
-        }
-        std::cout << std::dec << std::endl;
+        print_buffer(buffer);
         replyCnt--;
 
     } while (replyCnt >= 0);

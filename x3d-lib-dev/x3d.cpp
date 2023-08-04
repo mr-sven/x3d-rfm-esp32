@@ -1,6 +1,6 @@
 #include "x3d.h"
 
-int read_le_u32(uint32_t* res, uint8_t* buffer, int pBuffer)
+static inline int read_le_u32(uint32_t* res, uint8_t* buffer, int pBuffer)
 {
     *res = buffer[pBuffer++];
     *res |= buffer[pBuffer++] << 8;
@@ -9,14 +9,14 @@ int read_le_u32(uint32_t* res, uint8_t* buffer, int pBuffer)
     return pBuffer;
 }
 
-int read_le_u16(uint16_t* res, uint8_t* buffer, int pBuffer)
+static inline int read_le_u16(uint16_t* res, uint8_t* buffer, int pBuffer)
 {
     *res = buffer[pBuffer++];
     *res |= buffer[pBuffer++] << 8;
     return pBuffer;
 }
 
-int read_be_i16(int16_t* res, uint8_t* buffer, int pBuffer)
+static inline int read_be_i16(int16_t* res, uint8_t* buffer, int pBuffer)
 {
     *res = buffer[pBuffer++] << 8;
     *res |= buffer[pBuffer++];
@@ -61,33 +61,38 @@ uint8_t is_retrans_set(uint8_t* buffer, int payloadIndex, uint8_t slot)
     return buffer[payloadIndex + X3D_OFF_RETRANS_SLOT] & (1 << slot);
 }
 
-int write_le_u16(uint16_t val, uint8_t* buffer, int pBuffer)
+static inline int write_le_u16(uint16_t val, uint8_t* buffer, int pBuffer)
 {
     buffer[pBuffer++] = val & 0xff;
     buffer[pBuffer++] = (val >> 8) & 0xff;
     return pBuffer;
 }
 
-int write_be_i16(int16_t val, uint8_t* buffer, int pBuffer)
+static inline int write_be_i16(int16_t val, uint8_t* buffer, int pBuffer)
 {
     buffer[pBuffer++] = (val >> 8) & 0xff;
     buffer[pBuffer++] = val & 0xff;
     return pBuffer;
 }
 
-int write_be_u16(uint16_t val, uint8_t* buffer, int pBuffer)
+static inline int write_be_u16(uint16_t val, uint8_t* buffer, int pBuffer)
 {
     buffer[pBuffer++] = (val >> 8) & 0xff;
     buffer[pBuffer++] = val & 0xff;
     return pBuffer;
 }
 
-int write_le_u24(uint32_t val, uint8_t* buffer, int pBuffer)
+static inline int write_le_u24(uint32_t val, uint8_t* buffer, int pBuffer)
 {
     buffer[pBuffer++] = val & 0xff;
     buffer[pBuffer++] = (val >> 8) & 0xff;
     buffer[pBuffer++] = (val >> 16) & 0xff;
     return pBuffer;
+}
+
+static inline int get_highest_bit(uint16_t value)
+{
+    return sizeof(unsigned int) * 8 - __builtin_clz(value) - 1;
 }
 
 void x3d_init_message(uint8_t* buffer, uint32_t deviceId, uint8_t network)
@@ -157,7 +162,7 @@ void x3d_set_message_retrans(uint8_t* buffer, int payloadIndex, uint8_t replyCnt
 
 void x3d_set_pairing_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot, uint16_t pairingPin, uint8_t pairingStatus)
 {
-    write_le_u16(0xff1f, buffer, payloadIndex + X3D_OFF_REGISTER_ACTION);
+    write_le_u16(0xff1f, buffer, payloadIndex + X3D_OFF_PAIR_UNKNOWN);
     // add unknown high nibble flag
     if (targetSlot > 1 && targetSlot & 0x01)
     {
@@ -172,8 +177,23 @@ void x3d_set_pairing_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot,
 
 void x3d_set_beacon_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot)
 {
-    buffer[payloadIndex + X3D_OFF_REGISTER_ACTION] = 0xff;
+    buffer[payloadIndex + X3D_OFF_BEACON_UNKNOWN] = 0xff;
     write_le_u16(targetSlot, buffer, payloadIndex + X3D_OFF_BEACON_TARGET_SLOT_NO);
-    int packetSize = write_le_u16(0xffe0, buffer, payloadIndex + X3D_OFF_BEACON_UNKNOWN);
+    int packetSize = write_le_u16(0xffe0, buffer, payloadIndex + X3D_OFF_BEACON_UNKNOWN_2);
     buffer[X3D_IDX_PKT_LEN] = packetSize + X3D_CRC_SIZE;
+}
+
+void x3d_set_register_read(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask, uint8_t regHigh, uint8_t regLow)
+{
+    write_le_u16(targetSlotMask, buffer, payloadIndex + X3D_OFF_REGISTER_TARGET);
+    int dataSlotCount = get_highest_bit(targetSlotMask);
+    buffer[payloadIndex + X3D_OFF_REGISTER_ACTION] = ((dataSlotCount << 4) & 0xf0) | X3D_REGISTER_ACTION_READ;
+    buffer[payloadIndex + X3D_OFF_REGISTER_HIGH] = regHigh;
+    buffer[payloadIndex + X3D_OFF_REGISTER_LOW] = regLow;
+    int dataIdx = write_le_u16(0x0000, buffer, payloadIndex + X3D_OFF_REGISTER_ACK);
+    for (int i = 0; i <= dataSlotCount; i++)
+    {
+        dataIdx = write_le_u16(0x0000, buffer, dataIdx);
+    }
+    buffer[X3D_IDX_PKT_LEN] = dataIdx + X3D_CRC_SIZE;
 }

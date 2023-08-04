@@ -31,14 +31,20 @@
 #define X3D_OFF_RETRANS_SLOT            1
 #define X3D_OFF_RETRANS_ACK_SLOT        3
 
-#define X3D_OFF_REGISTER_ACTION         5
+#define X3D_OFF_REGISTER_TARGET         5
+#define X3D_OFF_REGISTER_ACTION         7
+#define X3D_OFF_REGISTER_HIGH           8
+#define X3D_OFF_REGISTER_LOW            9
+#define X3D_OFF_REGISTER_ACK            10
 
+#define X3D_OFF_PAIR_UNKNOWN            5
 #define X3D_OFF_PAIR_TARGET_SLOT_NO     7
 #define X3D_OFF_PAIR_PIN                9
 #define X3D_OFF_PAIR_STATE              11
 
+#define X3D_OFF_BEACON_UNKNOWN          5
 #define X3D_OFF_BEACON_TARGET_SLOT_NO   6
-#define X3D_OFF_BEACON_UNKNOWN          8
+#define X3D_OFF_BEACON_UNKNOWN_2        8
 
 #define X3D_PAIR_STATE_OPEN             0xe0
 #define X3D_PAIR_STATE_PINNED           0xe5
@@ -46,6 +52,11 @@
 #define X3D_PAIR_RESULT_RET_PIN         1
 #define X3D_PAIR_RESULT_PIN_VALID       2
 #define X3D_PAIR_RESULT_RETRANS         3
+
+#define X3D_REGISTER_ACTION_RESET       0x0
+#define X3D_REGISTER_ACTION_READ        0x1
+#define X3D_REGISTER_ACTION_NONE        0x8
+#define X3D_REGISTER_ACTION_WRITE       0x9
 
 #define X3D_CRC_SIZE                    sizeof(uint16_t)
 
@@ -61,15 +72,6 @@ enum class X3dMessageType : uint8_t
     Beacon = 3,
 };
 
-int read_le_u32(uint32_t* res, uint8_t* buffer, int pBuffer);
-int read_le_u16(uint16_t* res, uint8_t* buffer, int pBuffer);
-int read_be_i16(int16_t* res, uint8_t* buffer, int pBuffer);
-
-int write_le_u16(uint16_t val, uint8_t* buffer, int pBuffer);
-int write_be_i16(int16_t val, uint8_t* buffer, int pBuffer);
-int write_be_u16(uint16_t val, uint8_t* buffer, int pBuffer);
-int write_le_u24(uint32_t val, uint8_t* buffer, int pBuffer);
-
 int16_t calc_header_check(uint8_t* buffer, int headerLen);
 
 void set_slot(uint8_t* buffer, int index, uint8_t slot);
@@ -84,4 +86,5 @@ void x3d_set_message_retrans(uint8_t* buffer, int payloadIndex, uint8_t replyCnt
 
 void x3d_set_pairing_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot, uint16_t pairingPin, uint8_t pairingStatus);
 void x3d_set_beacon_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot);
+void x3d_set_register_read(uint8_t* buffer,  int payloadIndex, uint16_t targetSlotMask, uint8_t regHigh, uint8_t regLow);
 #endif
