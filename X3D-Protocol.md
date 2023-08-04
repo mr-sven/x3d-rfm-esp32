@@ -113,6 +113,15 @@ network 00 : 00 82 00 00 00 00 00 00 00 00                          continuously
 network 80 : 01 8A 00 00 FF FF FF 00 00 00 00 2A CD                 at startup
 network 40 : 02 82 00 03 08 12 04 00 32 00 00 00 00 00 00 01 04 21  at startup
 ```
+The message to 40 contains the current software versions of the Tydom:
+```
+           |- main -| kStack |                 | kSoft  |
+40 02 82 00 03 08 12 04 00 32 00 00 00 00 00 00 01 04 21
+
+03 08 12 = 03.08.18 mainVersionSW
+04 00 32 = 04.00.50 keyVersionStack
+01 04 21 = 01.04.33 keyVersionSW
+```
 
 ### MsgType 0x01 Standard message
 
