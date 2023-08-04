@@ -128,12 +128,19 @@ res: 1F FF ** 02 0C ****** 00 859800 #### qqqq 40 0100 0100 1FFF 0100 0000 E0
 
 The following message is send from Tydom in Network 4 to device slot 0
 ```
-req: 1C FF ** 03 0C ****** 84 059800 #### qqqq 04 0100 0000 FF0004E0FF
-res: 1C FF ** 03 0C ****** 84 059800 #### qqqq 30 0100 0100 FF0004E0FF
+req: 1C FF ** 03 0C ****** 84 059800 #### qqqq 04 0100 0000 FF 00 04E0FF
+res: 1C FF ** 03 0C ****** 84 059800 #### qqqq 30 0100 0100 FF 00 04E0FF
+```
+
+The following message is send from Tydom in Network 4 to device slot 1
+```
+req: 1C FF ** 03 0C ****** 84 059800 #### qqqq 04 0300 0000 FF 01 04E0FF
+res: 1C FF ** 03 0C ****** 84 059800 #### qqqq 10 0300 0100 FF 01 04E0FF
+     1C FF ** 03 0C ****** 84 059800 #### qqqq 11 0300 0300 FF 01 04E0FF
 ```
 
 The following message is send from Thermostat to device slot 0
 ```
-req: 1C FF ** 03 0C ****** 00 059800 #### qqqq 04 0100 0000 FF0000E0FF
-res: 1C FF ** 03 0C ****** 00 059800 #### qqqq 30 0100 0100 FF0000E0FF
+req: 1C FF ** 03 0C ****** 00 059800 #### qqqq 04 0100 0000 FF 00 00E0FF
+res: 1C FF ** 03 0C ****** 00 059800 #### qqqq 30 0100 0100 FF 00 00E0FF
 ```

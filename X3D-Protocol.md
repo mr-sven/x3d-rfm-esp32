@@ -498,3 +498,39 @@ res: 10 0F00 0100 1FFF 1400 0000 E0
      23 0F00 0900 1FFF 1400 0000 E0
      20 0F00 0900 1FFF 1400 0000 E0
 ```
+
+## Message Payload MsgType 0x03 Beacon message
+
+The first byte contains the counting and response device nibble.
+
+The the two transfer slots follows.
+
+* Transfer slot, what devices should retransmit the package.
+* Transfered slot, what device has retransmitted the package.
+
+Then a fixed byte follows `0xFF`.
+
+The next byte identifies the target device number zero to fiveteen.
+
+Then `0x04` follows from tydom or `0x00` from thermostat.
+
+The last are `0xe0 0xff`.
+
+From Tydom to device 0
+```
+req: 04 0100 0000 FF 00 04E0FF
+res: 30 0100 0100 FF 00 04E0FF
+```
+
+From Tydom to device 1
+```
+req: 04 0300 0000 FF 01 04E0FF
+res: 10 0300 0100 FF 01 04E0FF
+     11 0300 0300 FF 01 04E0FF
+```
+
+From Thermostat to device 0
+```
+req: 04 0100 0000 FF 00 00E0FF
+res: 30 0100 0100 FF 00 00E0FF
+```
