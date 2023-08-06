@@ -1,3 +1,14 @@
+/**
+ * @file x3d.cpp
+ * @author Sven Fabricius (sven.fabricius@livediesel.de)
+ * @brief 
+ * @version 0.1
+ * @date 2023-08-06
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #include "x3d.h"
 
 static inline int read_le_u32(uint32_t* res, uint8_t* buffer, int pBuffer)
@@ -183,17 +194,73 @@ void x3d_set_beacon_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot)
     buffer[X3D_IDX_PKT_LEN] = packetSize + X3D_CRC_SIZE;
 }
 
-void x3d_set_register_read(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask, uint8_t regHigh, uint8_t regLow)
+int set_register_and_action(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask, uint8_t action, uint8_t regHigh, uint8_t regLow)
 {
     write_le_u16(targetSlotMask, buffer, payloadIndex + X3D_OFF_REGISTER_TARGET);
-    int dataSlotCount = get_highest_bit(targetSlotMask);
-    buffer[payloadIndex + X3D_OFF_REGISTER_ACTION] = ((dataSlotCount << 4) & 0xf0) | X3D_REGISTER_ACTION_READ;
+    buffer[payloadIndex + X3D_OFF_REGISTER_ACTION] = action;
     buffer[payloadIndex + X3D_OFF_REGISTER_HIGH] = regHigh;
     buffer[payloadIndex + X3D_OFF_REGISTER_LOW] = regLow;
-    int dataIdx = write_le_u16(0x0000, buffer, payloadIndex + X3D_OFF_REGISTER_ACK);
+    return write_le_u16(0x0000, buffer, payloadIndex + X3D_OFF_REGISTER_ACK);
+}
+
+void x3d_set_register_read(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask, uint8_t regHigh, uint8_t regLow)
+{
+    int dataSlotCount = get_highest_bit(targetSlotMask);
+    uint8_t action = ((dataSlotCount << 4) & 0xf0) | X3D_REGISTER_ACTION_READ;
+    int dataIdx = set_register_and_action(buffer, payloadIndex, targetSlotMask, action, regHigh, regLow);
     for (int i = 0; i <= dataSlotCount; i++)
     {
         dataIdx = write_le_u16(0x0000, buffer, dataIdx);
+    }
+    buffer[X3D_IDX_PKT_LEN] = dataIdx + X3D_CRC_SIZE;
+}
+
+void x3d_set_unpair_device(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask)
+{
+    int dataIdx = set_register_and_action(buffer, payloadIndex, targetSlotMask, X3D_REGISTER_ACTION_RESET, 0xe0, 0x00);
+    buffer[X3D_IDX_PKT_LEN] = dataIdx + X3D_CRC_SIZE;
+}
+
+void x3d_set_ping_device(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask)
+{
+    int dataIdx = set_register_and_action(buffer, payloadIndex, targetSlotMask, X3D_REGISTER_ACTION_NONE, 0x00, 0x00);
+    buffer[X3D_IDX_PKT_LEN] = dataIdx + X3D_CRC_SIZE;
+}
+
+void x3d_set_register_write_same(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask, uint8_t regHigh, uint8_t regLow, uint16_t value)
+{
+    int dataSlotCount = get_highest_bit(targetSlotMask);
+    uint8_t action = ((dataSlotCount << 4) & 0xf0) | X3D_REGISTER_ACTION_WRITE;
+    int dataIdx = set_register_and_action(buffer, payloadIndex, targetSlotMask, action, regHigh, regLow);
+    for (int i = 0; i <= dataSlotCount; i++)
+    {
+        if ((1 << i) & targetSlotMask)
+        {
+            dataIdx = write_le_u16(value, buffer, dataIdx);
+        }
+        else
+        {
+            dataIdx = write_le_u16(0x0000, buffer, dataIdx);
+        }
+    }
+    buffer[X3D_IDX_PKT_LEN] = dataIdx + X3D_CRC_SIZE;
+}
+
+void x3d_set_register_write(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask, uint8_t regHigh, uint8_t regLow, uint16_t* values)
+{
+    int dataSlotCount = get_highest_bit(targetSlotMask);
+    uint8_t action = ((dataSlotCount << 4) & 0xf0) | X3D_REGISTER_ACTION_WRITE;
+    int dataIdx = set_register_and_action(buffer, payloadIndex, targetSlotMask, action, regHigh, regLow);
+    for (int i = 0; i <= dataSlotCount; i++)
+    {
+        if ((1 << i) & targetSlotMask)
+        {
+            dataIdx = write_le_u16(values[i], buffer, dataIdx);
+        }
+        else
+        {
+            dataIdx = write_le_u16(0x0000, buffer, dataIdx);
+        }
     }
     buffer[X3D_IDX_PKT_LEN] = dataIdx + X3D_CRC_SIZE;
 }

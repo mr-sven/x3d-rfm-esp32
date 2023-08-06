@@ -96,11 +96,16 @@ int main()
 
     //* Standard message
     transferSlotMask = 0x000F;
-    targetSlotMask = 0x0008;
+    targetSlotMask = 0x000f;
     uint8_t extHeader[] = {0x98, 0x00};
+    uint16_t data[] = {0xaaaa, 0xbbbb, 0xcccc, 0xdddd};
     int payloadIndex = x3d_prepare_message_header(buffer, &msgNo, X3D_MSG_TYPE_STD, 0, 0x05, extHeader, sizeof(extHeader), msgId);
     x3d_set_message_retrans(buffer, payloadIndex, replyCnt, transferSlotMask);
-    x3d_set_register_read(buffer, payloadIndex, targetSlotMask, 0x16, 0x11);
+    //x3d_set_register_read(buffer, payloadIndex, targetSlotMask, 0x16, 0x11);
+    //x3d_set_unpair_device(buffer, payloadIndex, targetSlotMask);
+    //x3d_set_ping_device(buffer, payloadIndex, targetSlotMask);
+    //x3d_set_register_write_same(buffer, payloadIndex, targetSlotMask, 0x16, 0x11, 0xaaaa);
+    x3d_set_register_write(buffer, payloadIndex, targetSlotMask, 0x16, 0x11, data);
     // */
 
     do
