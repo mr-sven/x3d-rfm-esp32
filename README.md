@@ -19,8 +19,6 @@ Payload format:
 
 The RFM69HW module is based on Semtech SX1231H. The nearest target frequency is 868.950012 MHz, the internal AFC is able to take care on this gap.
 
-Based on Sming 5.0 Framework: [https://github.com/SmingHub/Sming](https://github.com/SmingHub/Sming)
-
 X3D Protocol analysis: [X3D-Protocol.md](X3D-Protocol.md)
 
 X3D Messages: [X3D-Message-Log.md](X3D-Message-Log.md)
@@ -44,18 +42,3 @@ used:
 | D23   | MOSI  |
 
 [<img src="x3d-rfm-esp32.png" width="400"/>](x3d-rfm-esp32.png)
-
-
-## SDK Config
-
-`Component config -> ESP System Settings`
-
-Due to various errors with pyparsing, use pyparsing version 3.0.9
-
-```bash
-make SMING_ARCH=Esp32 sdk-menuconfig
-...
-make SMING_ARCH=Esp32 ide-vscode
-...
-make SMING_ARCH=Esp32 Sming-build all
-```

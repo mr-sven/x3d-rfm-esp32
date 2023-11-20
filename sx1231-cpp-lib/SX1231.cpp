@@ -3,6 +3,42 @@
 
 #include "SX1231.h"
 
+/*
+    sx = new SX1231::Interface(RFM69_CS, RFM69_IRQ, &RFM_Spi);
+
+    sx->rfIrq = rfmIrq;
+    sx->initialize();
+    sx->modulation({.dataMode = SX1231::DataMode::Packet, .modulationType = SX1231::ModulationType::Fsk, .shaping = SX1231::ModulationShaping::Shaping00});
+    sx->bitRate(40000);
+    sx->fdev(80000);
+    sx->frequency(868950000U);
+    sx->rxBw({.dccCutoff = SX1231::DccCutoff::Percent4, .rxBw = static_cast<uint8_t>(SX1231::RxBwFsk::Khz125dot0)});
+    sx->rxAfcBw({.dccCutoff = SX1231::DccCutoff::Percent1, .rxBw = static_cast<uint8_t>(SX1231::RxBwFsk::Khz41dot7)});
+    sx->afcFei(false, true, true, true, false);
+    sx->dioMapping({.pin = SX1231::DioPin::Dio0, .dioType = SX1231::DioType::Dio01, .dioMode = SX1231::DioMode::Both});
+    sx->rssiThreshold(114*2);
+    sx->preamble(4);
+
+    uint8_t sync[] = {0x81, 0x69, 0x96, 0x7e};
+    sx->sync({.syncSize = sizeof(sync)}, sync);
+    sx->packet({
+        .format = SX1231::PacketFormat::Variable,
+        .dcFree = SX1231::PacketDc::Whitening,
+        .payloadLength = 64,
+        .crcOn = false,
+        .crcAutoClearOff = false,
+        .filtering = SX1231::PacketFiltering::None,
+        .interPacketRxDelay = SX1231::InterPacketRxDelay::Delay32Bits,
+        .autoRxRestart = true});
+    sx->fifoThreshold(true, 15);
+    sx->sensitivityBoost(SX1231::SensitivityBoost::HighSensitivity);
+    sx->continuousDagc(SX1231::ContinuousDagc::ImprovedMarginAfcLowBetaOn0);
+    sx->mode(SX1231::Mode::Standby);
+    sx->paLevel(false, true, true, 23);
+    sx->receiveBegin();
+
+*/
+
 namespace SX1231
 {
     const double_t F_SCALE = 1000000.0;
