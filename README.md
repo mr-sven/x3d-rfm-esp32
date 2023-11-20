@@ -42,3 +42,9 @@ used:
 | D23   | MOSI  |
 
 [<img src="x3d-rfm-esp32.png" width="400"/>](x3d-rfm-esp32.png)
+
+## ESP Projects
+
+The ESP sub projects based on ESP-IDF 5.x. Each project folder contains a vscode configuration.
+
+* [x3d-raw-monitor](x3d-raw-monitor) - Init the SX1231 chip with correct config for the X3D protocol and dumps packet hex over serial.
