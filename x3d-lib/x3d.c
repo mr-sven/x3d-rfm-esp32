@@ -9,6 +9,10 @@
  *
  */
 
+#ifdef CONFIG_IDF_TARGET
+#include "esp_crc.h"
+#endif
+
 #include "x3d.h"
 
 static inline int read_le_u32(uint32_t* res, uint8_t* buffer, int pBuffer)
@@ -33,6 +37,43 @@ static inline int read_be_i16(int16_t* res, uint8_t* buffer, int pBuffer)
     *res |= buffer[pBuffer++];
     return pBuffer;
 }
+
+
+static inline int write_le_u16(uint16_t val, uint8_t* buffer, int pBuffer)
+{
+    buffer[pBuffer++] = val & 0xff;
+    buffer[pBuffer++] = (val >> 8) & 0xff;
+    return pBuffer;
+}
+
+static inline int write_be_i16(int16_t val, uint8_t* buffer, int pBuffer)
+{
+    buffer[pBuffer++] = (val >> 8) & 0xff;
+    buffer[pBuffer++] = val & 0xff;
+    return pBuffer;
+}
+
+static inline int write_be_u16(uint16_t val, uint8_t* buffer, int pBuffer)
+{
+    buffer[pBuffer++] = (val >> 8) & 0xff;
+    buffer[pBuffer++] = val & 0xff;
+    return pBuffer;
+}
+
+static inline int write_le_u24(uint32_t val, uint8_t* buffer, int pBuffer)
+{
+    buffer[pBuffer++] = val & 0xff;
+    buffer[pBuffer++] = (val >> 8) & 0xff;
+    buffer[pBuffer++] = (val >> 16) & 0xff;
+    return pBuffer;
+}
+
+
+static inline int get_highest_bit(uint16_t value)
+{
+    return sizeof(unsigned int) * 8 - __builtin_clz(value) - 1;
+}
+
 
 int16_t calc_header_check(uint8_t* buffer, int headerLen)
 {
@@ -72,40 +113,6 @@ uint8_t is_retrans_set(uint8_t* buffer, int payloadIndex, uint8_t slot)
     return buffer[payloadIndex + X3D_OFF_RETRANS_SLOT] & (1 << slot);
 }
 
-static inline int write_le_u16(uint16_t val, uint8_t* buffer, int pBuffer)
-{
-    buffer[pBuffer++] = val & 0xff;
-    buffer[pBuffer++] = (val >> 8) & 0xff;
-    return pBuffer;
-}
-
-static inline int write_be_i16(int16_t val, uint8_t* buffer, int pBuffer)
-{
-    buffer[pBuffer++] = (val >> 8) & 0xff;
-    buffer[pBuffer++] = val & 0xff;
-    return pBuffer;
-}
-
-static inline int write_be_u16(uint16_t val, uint8_t* buffer, int pBuffer)
-{
-    buffer[pBuffer++] = (val >> 8) & 0xff;
-    buffer[pBuffer++] = val & 0xff;
-    return pBuffer;
-}
-
-static inline int write_le_u24(uint32_t val, uint8_t* buffer, int pBuffer)
-{
-    buffer[pBuffer++] = val & 0xff;
-    buffer[pBuffer++] = (val >> 8) & 0xff;
-    buffer[pBuffer++] = (val >> 16) & 0xff;
-    return pBuffer;
-}
-
-static inline int get_highest_bit(uint16_t value)
-{
-    return sizeof(unsigned int) * 8 - __builtin_clz(value) - 1;
-}
-
 void x3d_init_message(uint8_t* buffer, uint32_t deviceId, uint8_t network)
 {
     buffer[X3D_IDX_PKT_LEN] = 0; // packed len, updated later
@@ -119,7 +126,10 @@ void x3d_init_message(uint8_t* buffer, uint32_t deviceId, uint8_t network)
 
 void x3d_set_crc(uint8_t* buffer)
 {
-    int size = buffer[X3D_IDX_PKT_LEN] - sizeof(uint16_t);
+    int size = buffer[X3D_IDX_PKT_LEN] - X3D_CRC_SIZE;
+#ifdef CONFIG_IDF_TARGET
+    uint16_t crc = ~esp_crc16_be(~0x0000, buffer, size);
+#else
     uint16_t crc = 0;
     for (int i = 0; i < size; i++)
     {
@@ -136,6 +146,7 @@ void x3d_set_crc(uint8_t* buffer)
             }
         }
     }
+#endif
     write_be_u16(crc, buffer, size);
 }
 
