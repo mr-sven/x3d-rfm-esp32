@@ -49,3 +49,4 @@ The ESP sub projects based on ESP-IDF 5.x. Each project folder contains a vscode
 
 * [x3d-lib](x3d-lib) - Makefile gcc project to implement and test X3D generate and parsing lib.
 * [x3d-raw-monitor](x3d-raw-monitor) - Init the SX1231 chip with correct config for the X3D protocol and dumps packet hex over serial.
+* [x3d-raw-mqtt-publish](x3d-raw-mqtt-publish) - Publishes Raw packet binary over mqtt.
