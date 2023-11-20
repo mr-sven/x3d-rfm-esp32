@@ -1,12 +1,12 @@
 /**
  * @file x3d.cpp
  * @author Sven Fabricius (sven.fabricius@livediesel.de)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2023-08-06
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 
 #include "x3d.h"
@@ -139,7 +139,7 @@ void x3d_set_crc(uint8_t* buffer)
     write_be_u16(crc, buffer, size);
 }
 
-int x3d_prepare_message_header(uint8_t* buffer, uint8_t* messageNo, uint8_t messageType, uint8_t flags, uint8_t status, uint8_t* extendedHeader, int extendedHeaderLen, uint16_t messageId)
+int x3d_prepare_message_header(uint8_t* buffer, uint8_t* messageNo, x3d_msg_type_t messageType, uint8_t flags, uint8_t status, uint8_t* extendedHeader, int extendedHeaderLen, uint16_t messageId)
 {
     buffer[X3D_IDX_MSG_NO] = *messageNo++;
     buffer[X3D_IDX_MSG_TYPE] = messageType;

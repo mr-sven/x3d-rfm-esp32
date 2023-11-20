@@ -1,5 +1,4 @@
-#include <iostream>
-#include <iomanip>
+#include <stdio.h>
 #include "x3d.h"
 /*
 int process_pairing_message(uint8_t* buffer, uint16_t pairingId, uint8_t * slot, uint8_t replyCnt)
@@ -37,7 +36,7 @@ int process_pairing_message(uint8_t* buffer, uint16_t pairingId, uint8_t * slot,
 
     return -1;
 }*/
-
+/*
 void hexToBytes(const std::string& data, uint8_t* buffer)
 {
     for (int i = 0; i < data.length(); i += 2)
@@ -46,20 +45,21 @@ void hexToBytes(const std::string& data, uint8_t* buffer)
         buffer[i / 2] = (uint8_t)strtol(byteString.c_str(), NULL, 16);
     }
 }
+*/
 
 void print_buffer(uint8_t* buffer)
 {
     int bufsize = buffer[0];
     for (int i = 0; i < bufsize; i++)
     {
-        std::cout << " " << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i];
+        printf(" %02x", buffer[i]);
     }
-    std::cout << std::dec << std::endl;
+    printf("\n");
 }
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    printf("Hello World!\n");
     uint8_t buffer[64];
 
     uint32_t deviceId = 0x123456;
@@ -99,7 +99,7 @@ int main()
     targetSlotMask = 0x000f;
     uint8_t extHeader[] = {0x98, 0x00};
     uint16_t data[] = {0xaaaa, 0xbbbb, 0xcccc, 0xdddd};
-    int payloadIndex = x3d_prepare_message_header(buffer, &msgNo, X3D_MSG_TYPE_STD, 0, 0x05, extHeader, sizeof(extHeader), msgId);
+    int payloadIndex = x3d_prepare_message_header(buffer, &msgNo, X3D_MSG_TYPE_STANDARD, 0, 0x05, extHeader, sizeof(extHeader), msgId);
     x3d_set_message_retrans(buffer, payloadIndex, replyCnt, transferSlotMask);
     //x3d_set_register_read(buffer, payloadIndex, targetSlotMask, 0x16, 0x11);
     //x3d_set_unpair_device(buffer, payloadIndex, targetSlotMask);

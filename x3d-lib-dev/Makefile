@@ -3,7 +3,7 @@
 # *****************************************************
 # Variables to control Makefile operation
 
-CC = g++
+CC = gcc
 CFLAGS = -Wall -g
 
 # ****************************************************
@@ -14,7 +14,7 @@ main: x3d-lib-test.o x3d.o
 
 # The main.o target can be written more simply
 
-main.o: x3d-lib-test.cpp x3d.h
-	$(CC) $(CFLAGS) -c x3d-lib-test.cpp
+main.o: x3d-lib-test.c x3d.h
+	$(CC) $(CFLAGS) -c x3d-lib-test.c
 
 x3d.o: x3d.h

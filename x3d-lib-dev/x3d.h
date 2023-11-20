@@ -1,23 +1,18 @@
 /**
  * @file x3d.h
  * @author Sven Fabricius (sven.fabricius@livediesel.de)
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2023-08-06
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 
 #ifndef X3D_H
 #define X3D_H
 
 #include <stdint.h>
-
-#define X3D_MSG_TYPE_SENSOR             0
-#define X3D_MSG_TYPE_STD                1
-#define X3D_MSG_TYPE_PAIRING            2
-#define X3D_MSG_TYPE_BEACON             3
 
 #define X3D_HEADER_LENGTH_MASK          0x1f
 #define X3D_HEADER_FLAGS_MASK           0xe0
@@ -69,19 +64,19 @@
 #define X3D_REGISTER_ACTION_NONE        0x8
 #define X3D_REGISTER_ACTION_WRITE       0x9
 
-#define X3D_CRC_SIZE                    sizeof(uint16_t)
 
+#define X3D_CRC_SIZE                    sizeof(uint16_t)
 
 // Header len byte + header chksum i16
 #define X3D_HEADER_CKSUM_DROP_LEN       3
 
-enum class X3dMessageType : uint8_t
+typedef enum
 {
-    Sensor = 0,
-    Standard = 1,
-    Pairing = 2,
-    Beacon = 3,
-};
+    X3D_MSG_TYPE_SENSOR = 0,
+    X3D_MSG_TYPE_STANDARD = 1,
+    X3D_MSG_TYPE_PAIRING = 2,
+    X3D_MSG_TYPE_BEACON = 3,
+} x3d_msg_type_t;
 
 int16_t calc_header_check(uint8_t* buffer, int headerLen);
 
@@ -91,7 +86,7 @@ uint8_t is_retrans_set(uint8_t* buffer, int payloadIndex, uint8_t slot);
 
 /**
  * @brief Initialize the the output message buffer. On reusing the buffer it is enought to execute once.
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param deviceId 24bit device id
  * @param network network number
@@ -100,7 +95,7 @@ void x3d_init_message(uint8_t* buffer, uint32_t deviceId, uint8_t network);
 
 /**
  * @brief Prepares the message header.
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param messageNo number of the message
  * @param messageType type of the message
@@ -111,11 +106,11 @@ void x3d_init_message(uint8_t* buffer, uint32_t deviceId, uint8_t network);
  * @param messageId optional message id, if zero the message id is not added to header
  * @return int returns the index of the end of the header, so the start of the payload.
  */
-int x3d_prepare_message_header(uint8_t* buffer, uint8_t* messageNo, uint8_t messageType, uint8_t flags, uint8_t status, uint8_t* extendedHeader, int extendedHeaderLen, uint16_t messageId);
+int x3d_prepare_message_header(uint8_t* buffer, uint8_t* messageNo, x3d_msg_type_t messageType, uint8_t flags, uint8_t status, uint8_t* extendedHeader, int extendedHeaderLen, uint16_t messageId);
 
 /**
  * @brief Sets the retransmit slots and reply count.
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @param replyCnt current reply count
@@ -125,14 +120,14 @@ void x3d_set_message_retrans(uint8_t* buffer, int payloadIndex, uint8_t replyCnt
 
 /**
  * @brief Calculates the CRC sum and updates the value. Call before send.
- * 
+ *
  * @param buffer pointer to the message buffer
  */
 void x3d_set_crc(uint8_t* buffer);
 
 /**
  * @brief Set pairing message data
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @param targetSlot target slot number of the new device
@@ -143,7 +138,7 @@ void x3d_set_pairing_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot,
 
 /**
  * @brief Sets beacon message data
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @param targetSlot target slot number of the new device
@@ -152,7 +147,7 @@ void x3d_set_beacon_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot);
 
 /**
  * @brief sets register read data
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @param targetSlotMask target device slot
@@ -163,7 +158,7 @@ void x3d_set_register_read(uint8_t* buffer, int payloadIndex, uint16_t targetSlo
 
 /**
  * @brief sets device unpair data
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @param targetSlotMask target device slot
@@ -172,7 +167,7 @@ void x3d_set_unpair_device(uint8_t* buffer, int payloadIndex, uint16_t targetSlo
 
 /**
  * @brief sets device ping data
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @param targetSlotMask target device slot
