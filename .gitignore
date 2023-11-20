@@ -35,3 +35,4 @@
 .vscode
 *.code-workspace
 out
+build
