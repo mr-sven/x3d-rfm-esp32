@@ -94,6 +94,18 @@ The previous last two bytes may contain some random message id.
  <flags|headeLen> <deviceId> <network> <headerPayload> <messageId?> <cksum>
 ```
 
+## The Message Id
+
+The message id is not truly random, if follows a kind of OTP, the first value is random, but the following message id is calculated.
+At first, the device responds and relays every message, but if the message id does not match, the register read and write block is ignored.
+
+Current checks done:
+* random msg id: 1st response contains data, 2nd empty, after a few minutes the device responds again with one times data.
+* replayed msg ids from other device: same as random, so I assume the device id is part of the calculation.
+* replayed msg id from same device: continous data, msg number plays no role, also the rest of the header or payload.
+
+
+
 ## Header Payload
 
 The Header Payload contains a various list of flags and data. Followed a list of payloads and guessed data.
