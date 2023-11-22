@@ -152,7 +152,7 @@ void x3d_set_crc(uint8_t* buffer)
 
 int x3d_prepare_message_header(uint8_t* buffer, uint8_t* messageNo, x3d_msg_type_t messageType, uint8_t flags, uint8_t status, uint8_t* extendedHeader, int extendedHeaderLen, uint16_t messageId)
 {
-    buffer[X3D_IDX_MSG_NO] = *messageNo++;
+    buffer[X3D_IDX_MSG_NO] = (*messageNo)++;
     buffer[X3D_IDX_MSG_TYPE] = messageType;
     buffer[X3D_IDX_NETWORK + X3D_OFF_HEADER_STATUS] = status;
 
@@ -182,7 +182,7 @@ void x3d_set_message_retrans(uint8_t* buffer, int payloadIndex, uint8_t replyCnt
     write_le_u16(0, buffer, payloadIndex + X3D_OFF_RETRANS_ACK_SLOT);
 }
 
-void x3d_set_pairing_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot, uint16_t pairingPin, uint8_t pairingStatus)
+void x3d_set_pairing_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot, uint16_t pairingPin, x3d_pair_state_t pairingStatus)
 {
     write_le_u16(0xff1f, buffer, payloadIndex + X3D_OFF_PAIR_UNKNOWN);
     // add unknown high nibble flag
@@ -274,4 +274,29 @@ void x3d_set_register_write(uint8_t* buffer, int payloadIndex, uint16_t targetSl
         }
     }
     buffer[X3D_IDX_PKT_LEN] = dataIdx + X3D_CRC_SIZE;
+}
+
+uint8_t x3d_dec_retry(uint8_t* buffer)
+{
+    uint8_t retryIdx = (buffer[X3D_IDX_HEADER_LEN] & X3D_HEADER_LENGTH_MASK) + X3D_IDX_HEADER_LEN;
+    uint8_t currentRetry = buffer[retryIdx];
+    if (currentRetry > 0)
+    {
+        buffer[retryIdx] = currentRetry - 1;
+    }
+    return currentRetry;
+}
+
+uint16_t x3d_get_pairing_pin(uint8_t* buffer, int payloadIndex)
+{
+    uint16_t pin;
+    read_le_u16(&pin, buffer, payloadIndex + X3D_OFF_PAIR_PIN);
+    return pin;
+}
+
+uint16_t x3d_get_retrans_ack(uint8_t* buffer, int payloadIndex)
+{
+    uint16_t ack;
+    read_le_u16(&ack, buffer, payloadIndex + X3D_OFF_RETRANS_ACK_SLOT);
+    return ack;
 }

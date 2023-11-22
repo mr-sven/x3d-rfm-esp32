@@ -1,5 +1,11 @@
 #include <stdio.h>
 #include "x3d.h"
+
+
+#define X3D_PAIR_RESULT_RET_PIN         1
+#define X3D_PAIR_RESULT_PIN_VALID       2
+#define X3D_PAIR_RESULT_RETRANS         3
+
 /*
 int process_pairing_message(uint8_t* buffer, uint16_t pairingId, uint8_t * slot, uint8_t replyCnt)
 {

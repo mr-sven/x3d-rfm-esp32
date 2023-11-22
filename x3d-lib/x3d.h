@@ -9,10 +9,11 @@
  *
  */
 
-#ifndef X3D_H
-#define X3D_H
+#pragma once
 
 #include <stdint.h>
+
+#define X3D_MSG_DELAY_MS                20
 
 #define X3D_HEADER_LENGTH_MASK          0x1f
 #define X3D_HEADER_FLAGS_MASK           0xe0
@@ -52,18 +53,10 @@
 #define X3D_OFF_BEACON_TARGET_SLOT_NO   6
 #define X3D_OFF_BEACON_UNKNOWN_2        8
 
-#define X3D_PAIR_STATE_OPEN             0xe0
-#define X3D_PAIR_STATE_PINNED           0xe5
-
-#define X3D_PAIR_RESULT_RET_PIN         1
-#define X3D_PAIR_RESULT_PIN_VALID       2
-#define X3D_PAIR_RESULT_RETRANS         3
-
 #define X3D_REGISTER_ACTION_RESET       0x0
 #define X3D_REGISTER_ACTION_READ        0x1
 #define X3D_REGISTER_ACTION_NONE        0x8
 #define X3D_REGISTER_ACTION_WRITE       0x9
-
 
 #define X3D_CRC_SIZE                    sizeof(uint16_t)
 
@@ -78,11 +71,11 @@ typedef enum
     X3D_MSG_TYPE_BEACON = 3,
 } x3d_msg_type_t;
 
-int16_t calc_header_check(uint8_t* buffer, int headerLen);
-
-void set_slot(uint8_t* buffer, int index, uint8_t slot);
-void set_retrans_slot(uint8_t* buffer, int payloadIndex, uint8_t replyCnt, uint8_t slot);
-uint8_t is_retrans_set(uint8_t* buffer, int payloadIndex, uint8_t slot);
+typedef enum
+{
+    X3D_PAIR_STATE_OPEN = 0xe0,
+    X3D_PAIR_STATE_PINNED = 0xe5,
+} x3d_pair_state_t;
 
 /**
  * @brief Initialize the the output message buffer. On reusing the buffer it is enought to execute once.
@@ -134,7 +127,7 @@ void x3d_set_crc(uint8_t* buffer);
  * @param pairingPin device pin of the new device
  * @param pairingStatus pair open for new or pin if pointing a responding device via pin
  */
-void x3d_set_pairing_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot, uint16_t pairingPin, uint8_t pairingStatus);
+void x3d_set_pairing_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot, uint16_t pairingPin, x3d_pair_state_t pairingStatus);
 
 /**
  * @brief Sets beacon message data
@@ -174,7 +167,9 @@ void x3d_set_unpair_device(uint8_t* buffer, int payloadIndex, uint16_t targetSlo
  */
 void x3d_set_ping_device(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask);
 
-
 void x3d_set_register_write_same(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask, uint8_t regHigh, uint8_t regLow, uint16_t value);
 void x3d_set_register_write(uint8_t* buffer, int payloadIndex, uint16_t targetSlotMask, uint8_t regHigh, uint8_t regLow, uint16_t* values);
-#endif
+
+uint8_t x3d_dec_retry(uint8_t* buffer);
+uint16_t x3d_get_pairing_pin(uint8_t* buffer, int payloadIndex);
+uint16_t x3d_get_retrans_ack(uint8_t* buffer, int payloadIndex);
