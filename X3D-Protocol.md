@@ -87,7 +87,7 @@ The next byte defines a mesh network.
 The last two bytes contains a checksum for the header. It is an Int16 big endian. It's the negative cross sum starting on header len byte.
 Based on analyses this is the only value transfered in big endian.
 
-The previous last two bytes may contain some random message id.
+The previous last two bytes may contain message id.
 
 ```
 |---------------------------------- cksum -------------------------|
@@ -96,15 +96,11 @@ The previous last two bytes may contain some random message id.
 
 ## The Message Id
 
-The message id is not truly random, if follows a kind of OTP, the first value is random, but the following message id is calculated.
-At first, the device responds and relays every message, but if the message id does not match, the register read and write block is ignored.
+The Message Id is based on a rolling 16 bit integer but omits zero, so 0xffff rolled over to 0x0001.
+The number is encrypted using the 3 byte device id.
 
-Current checks done:
-* random msg id: 1st response contains data, 2nd empty, after a few minutes the device responds again with one times data.
-* replayed msg ids from other device: same as random, so I assume the device id is part of the calculation.
-* replayed msg id from same device: continous data, msg number plays no role, also the rest of the header or payload.
-
-
+On the target device the number gets decrypted and compared to the last one, if the message id is lower or maximum 32 above the current number,
+the device accepts or responds. Otherwise the message get relayed but is not taken care.
 
 ## Header Payload
 
