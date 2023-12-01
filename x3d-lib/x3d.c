@@ -74,6 +74,11 @@ static inline int get_highest_bit(uint16_t value)
     return sizeof(unsigned int) * 8 - __builtin_clz(value) - 1;
 }
 
+static uint8_t sbox[] = {0x1, 0x0, 0xC, 0x8, 0xA, 0x9, 0xE, 0x7, 0x3, 0x5, 0x4, 0xB, 0x2, 0xF, 0x6, 0xD};
+uint16_t apply_sbox(uint16_t value, uint8_t count)
+{
+	return value & ((0xf << count) ^ 0xffff) | (sbox[(value >> count) & 0xf] << count);
+}
 
 int16_t calc_header_check(uint8_t* buffer, int headerLen)
 {
@@ -299,4 +304,32 @@ uint16_t x3d_get_retrans_ack(uint8_t* buffer, int payloadIndex)
     uint16_t ack;
     read_le_u16(&ack, buffer, payloadIndex + X3D_OFF_RETRANS_ACK_SLOT);
     return ack;
+}
+
+uint16_t x3d_enc_msg_id(uint16_t *msg_id_p, uint32_t deviceId)
+{
+    (*msg_id_p)++;
+    if (*msg_id_p == 0)
+    {
+        *msg_id_p = 1;
+    }
+
+    uint16_t result = *msg_id_p;
+    uint16_t xor_key = ((deviceId & 0xff) ^ ((deviceId >> 16) & 0xff)) | (deviceId & 0xff00);
+    for (int i = 0; i < 32; i++)
+    {
+        result = apply_sbox(result, i % 13) ^ xor_key;
+    }
+
+    return result;
+}
+
+uint16_t x3d_dec_msg_id(uint16_t enc_msg_id, uint32_t deviceId)
+{
+    uint16_t xor_key = ((deviceId & 0xff) ^ ((deviceId >> 16) & 0xff)) | (deviceId & 0xff00);
+    for (int i = 31; i >= 0; i--)
+    {
+        enc_msg_id = apply_sbox(enc_msg_id ^ xor_key, i % 13);
+    }
+    return enc_msg_id;
 }

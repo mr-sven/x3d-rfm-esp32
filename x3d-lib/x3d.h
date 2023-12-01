@@ -173,3 +173,5 @@ void x3d_set_register_write(uint8_t* buffer, int payloadIndex, uint16_t targetSl
 uint8_t x3d_dec_retry(uint8_t* buffer);
 uint16_t x3d_get_pairing_pin(uint8_t* buffer, int payloadIndex);
 uint16_t x3d_get_retrans_ack(uint8_t* buffer, int payloadIndex);
+uint16_t x3d_enc_msg_id(uint16_t *msg_id_p, uint32_t deviceId);
+uint16_t x3d_dec_msg_id(uint16_t enc_msg_id, uint32_t deviceId);

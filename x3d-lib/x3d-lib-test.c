@@ -63,6 +63,7 @@ void print_buffer(uint8_t* buffer)
     printf("\n");
 }
 
+
 int main()
 {
     printf("Hello World!\n");
@@ -75,8 +76,20 @@ int main()
     uint16_t transferSlotMask = 0x0000;
     uint16_t targetSlotMask = 0x0001;
 
-
     x3d_init_message(buffer, deviceId, 0x00);
+
+    uint16_t msg_no = 1;
+    uint16_t var = x3d_enc_msg_id(&msg_no, deviceId);
+    printf("%04x\n", var);
+
+    var = x3d_dec_msg_id(var, deviceId);
+    printf("%04x\n", var);
+
+    var = x3d_enc_msg_id(&msg_no, deviceId);
+    printf("%04x\n", var);
+
+    var = x3d_dec_msg_id(var, deviceId);
+    printf("%04x\n", var);
 
     /* Pairing messages
     uint8_t extHeader[] = {0x98, 0x00};
@@ -100,7 +113,7 @@ int main()
     x3d_set_crc(buffer);
     // */
 
-    //* Standard message
+    /* Standard message
     transferSlotMask = 0x000F;
     targetSlotMask = 0x000f;
     uint8_t extHeader[] = {0x98, 0x00};
@@ -113,7 +126,7 @@ int main()
     //x3d_set_register_write_same(buffer, payloadIndex, targetSlotMask, 0x16, 0x11, 0xaaaa);
     x3d_set_register_write(buffer, payloadIndex, targetSlotMask, 0x16, 0x11, data);
     // */
-
+/*
     do
     {
         x3d_set_message_retrans(buffer, payloadIndex, replyCnt, transferSlotMask);
@@ -122,7 +135,7 @@ int main()
         replyCnt--;
 
     } while (replyCnt >= 0);
-
+*/
 
         /*
 
