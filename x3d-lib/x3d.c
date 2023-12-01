@@ -77,7 +77,7 @@ static inline int get_highest_bit(uint16_t value)
 static uint8_t sbox[] = {0x1, 0x0, 0xC, 0x8, 0xA, 0x9, 0xE, 0x7, 0x3, 0x5, 0x4, 0xB, 0x2, 0xF, 0x6, 0xD};
 uint16_t apply_sbox(uint16_t value, uint8_t count)
 {
-	return value & ((0xf << count) ^ 0xffff) | (sbox[(value >> count) & 0xf] << count);
+	return (value & ((0xf << count) ^ 0xffff)) | (sbox[(value >> count) & 0xf] << count);
 }
 
 int16_t calc_header_check(uint8_t* buffer, int headerLen)
