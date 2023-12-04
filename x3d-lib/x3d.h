@@ -60,22 +60,33 @@
 
 #define X3D_CRC_SIZE                    sizeof(uint16_t)
 
+#define X3D_MAX_PAYLOAD_DATA_FIELDS     16
+
 // Header len byte + header chksum i16
 #define X3D_HEADER_CKSUM_DROP_LEN       3
 
-typedef enum
-{
+typedef enum {
     X3D_MSG_TYPE_SENSOR = 0,
     X3D_MSG_TYPE_STANDARD = 1,
     X3D_MSG_TYPE_PAIRING = 2,
     X3D_MSG_TYPE_BEACON = 3,
 } x3d_msg_type_t;
 
-typedef enum
-{
+typedef enum {
     X3D_PAIR_STATE_OPEN = 0xe0,
     X3D_PAIR_STATE_PINNED = 0xe5,
 } x3d_pair_state_t;
+
+typedef struct __attribute__((__packed__)) {
+    uint16_t retransmit;
+    uint16_t retransmited;
+    uint16_t target;
+    uint8_t action;
+    uint8_t reg_high;
+    uint8_t reg_low;
+    uint16_t target_ack;
+    uint16_t data[X3D_MAX_PAYLOAD_DATA_FIELDS];
+} x3d_standard_msg_payload_t, *x3d_standard_msg_payload_p;
 
 /**
  * @brief Initialize the the output message buffer. On reusing the buffer it is enought to execute once.
