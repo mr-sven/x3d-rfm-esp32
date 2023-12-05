@@ -135,9 +135,25 @@ The message to 40 contains the current software versions of the Tydom:
 
 ```
 05 98 00 <messageId>
-05 98 08 00 3E 06 <messageId>     3E 06 = 0x063e = 1598 / 100 = 15.98 °C room temperature
+05 98 08 00 3E 06 <messageId>     3E 06 = 0x063e = 1598 / 100 = 15.98 °C room temperature, stored in reg 0x15 0x11
+05 98 08 01 3E 06 <messageId>     3E 06 = 0x063e = 1598 / 100 = 15.98 °C external temperature, stored in reg 0x15 0x21
 15 98 ....                        Battery low, affects register 16 11 and 16 21
 ```
+
+first byte flags:
+* `0x01` - unknown
+* `0x04` - unknown
+* `0x10` - Battery low
+
+second byte, mostly `0x98`
+
+third byte:
+* `0x00` - no additional data
+* `0x08` - temperature data follows
+
+if temp then fourth byte:
+* `0x00` - room temperature
+* `0x01` - external temperature
 
 ### MsgType 0x02 Pairing message
 
