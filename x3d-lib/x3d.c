@@ -157,7 +157,12 @@ void x3d_set_crc(uint8_t* buffer)
 
 int x3d_prepare_message_header(uint8_t* buffer, uint8_t* messageNo, x3d_msg_type_t messageType, uint8_t flags, uint8_t status, uint8_t* extendedHeader, int extendedHeaderLen, uint16_t messageId)
 {
-    buffer[X3D_IDX_MSG_NO] = (*messageNo)++;
+    (*messageNo)++;
+    if (*messageNo == 0)
+    {
+        *messageNo = 1;
+    }
+    buffer[X3D_IDX_MSG_NO] = *messageNo;
     buffer[X3D_IDX_MSG_TYPE] = messageType;
     buffer[X3D_IDX_NETWORK + X3D_OFF_HEADER_STATUS] = status;
 
