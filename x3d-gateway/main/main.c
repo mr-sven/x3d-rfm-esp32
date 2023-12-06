@@ -43,12 +43,14 @@
 #define MQTT_STATUS_READING               "reading"
 #define MQTT_STATUS_WRITING               "writing"
 #define MQTT_STATUS_UNPAIRING             "unpairing"
+#define MQTT_STATUS_TEMP                  "temp"
 
 #define MQTT_TOPIC_CMD                    "/cmd"
 #define MQTT_CMD_PAIR                     "pair"
 #define MQTT_CMD_READ                     "read"
 #define MQTT_CMD_WRITE                    "write"
 #define MQTT_CMD_UNPAIR                   "unpair"
+#define MQTT_CMD_TEMP                     "temp"
 
 #define MQTT_JSON_ACTION                  "action"
 #define MQTT_JSON_NETWORK                 "net"
@@ -59,8 +61,13 @@
 #define MQTT_JSON_VALUES                  "values"
 #define MQTT_JSON_TRANSFER                "transfer"
 #define MQTT_JSON_TARGET                  "target"
+#define MQTT_JSON_TEMP                    "temp"
+#define MQTT_JSON_ROOM                    "room"
 
 #define TRANSFER_SLOT_MASK(X)    ((1 << X) - 1)
+
+#define X3D_DEFAULT_MSG_RETRY             4
+#define X3D_TEMP_MSG_RETRY                1
 
 typedef struct {
     uint8_t network;
@@ -89,6 +96,14 @@ typedef struct {
     uint8_t register_low;
     uint16_t values[X3D_MAX_PAYLOAD_DATA_FIELDS];
 } x3d_write_data_t;
+
+typedef struct {
+    uint8_t network;
+    uint16_t transfer;
+    uint16_t target;
+    uint8_t room;
+    uint16_t temp;
+} x3d_temp_data_t;
 
 static const char *TAG = "MAIN";
 
@@ -183,6 +198,10 @@ static void x3d_transmit(void)
     rfm_receive();
 }
 
+/***********************************************
+ * X3D pairing message handler
+ */
+
 static void x3d_pairing_task(void *arg)
 {
     set_status(MQTT_STATUS_PAIRING);
@@ -193,7 +212,7 @@ static void x3d_pairing_task(void *arg)
     uint16_t ack_mask = 1 << pairing_data->no_of_devices;
     uint16_t transfer_slot = ack_mask - 1;
 
-    x3d_set_message_retrans(x3d_buffer, payload_index, 4, transfer_slot);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, transfer_slot);
     x3d_set_pairing_data(x3d_buffer, payload_index, pairing_data->no_of_devices, 0, X3D_PAIR_STATE_OPEN);
 
     // transfer buffer
@@ -258,6 +277,10 @@ void process_pairing(cJSON *cmd)
     xTaskCreate(x3d_pairing_task, "x3d_pairing_task", 2048, pairing_data, 10, &x3d_processing_task_handle);
 }
 
+/***********************************************
+ * X3D register read handler
+ */
+
 static void x3d_reading_task(void* arg)
 {
     set_status(MQTT_STATUS_READING);
@@ -265,7 +288,7 @@ static void x3d_reading_task(void* arg)
 
     uint8_t ext_header[] = {0x98, 0x00};
     uint8_t payload_index = x3d_prepare_message(read_data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
-    x3d_set_message_retrans(x3d_buffer, payload_index, 4, read_data->transfer);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, read_data->transfer);
     x3d_set_register_read(x3d_buffer, payload_index, read_data->target, read_data->register_high, read_data->register_low);
 
     int no_of_devices = get_highest_bit(read_data->transfer) + 1;
@@ -274,7 +297,7 @@ static void x3d_reading_task(void* arg)
     x3d_transmit();
 
     // wait to process responses
-    vTaskDelay(pdMS_TO_TICKS(no_of_devices * 4 * X3D_MSG_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(no_of_devices * X3D_DEFAULT_MSG_RETRY * X3D_MSG_DELAY_MS));
 
     x3d_standard_msg_payload_p payload = (x3d_standard_msg_payload_p)&x3d_buffer[payload_index + 1];
     ESP_LOGI(TAG, "read register %02x - %02x from %04x", payload->reg_high, payload->reg_low, payload->target_ack);
@@ -328,8 +351,12 @@ void process_reading(cJSON *cmd)
     read_data->register_low = register_low->valueint;
 
     ESP_LOGI(TAG, "process_reading network %d via %04x from %04x register %02x - %02x", read_data->network, read_data->transfer, read_data->target, read_data->register_high, read_data->register_low);
-    xTaskCreate(x3d_reading_task, "x3d_reading_task", 2048, read_data, 10, &x3d_processing_task_handle);
+    xTaskCreate(x3d_reading_task, "x3d_reading_task", 4096, read_data, 10, &x3d_processing_task_handle);
 }
+
+/***********************************************
+ * X3D register write handler
+ */
 
 static void x3d_writing_task(void* arg)
 {
@@ -338,7 +365,7 @@ static void x3d_writing_task(void* arg)
 
     uint8_t ext_header[] = {0x98, 0x00};
     uint8_t payload_index = x3d_prepare_message(write_data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
-    x3d_set_message_retrans(x3d_buffer, payload_index, 4, write_data->transfer);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, write_data->transfer);
     x3d_set_register_write(x3d_buffer, payload_index, write_data->target, write_data->register_high, write_data->register_low, write_data->values);
 
     int no_of_devices = get_highest_bit(write_data->transfer) + 1;
@@ -347,7 +374,7 @@ static void x3d_writing_task(void* arg)
     x3d_transmit();
 
     // wait to process responses
-    vTaskDelay(pdMS_TO_TICKS(no_of_devices * 4 * X3D_MSG_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(no_of_devices * X3D_DEFAULT_MSG_RETRY * X3D_MSG_DELAY_MS));
 
     x3d_standard_msg_payload_p payload = (x3d_standard_msg_payload_p)&x3d_buffer[payload_index + 1];
     ESP_LOGI(TAG, "write register %02x - %02x to %04x", payload->reg_high, payload->reg_low, payload->target_ack);
@@ -429,8 +456,12 @@ void process_writing(cJSON *cmd)
     }
 
     ESP_LOGI(TAG, "process_writing network %d via %04x to %04x register %02x - %02x", write_data->network, write_data->transfer, write_data->target, write_data->register_high, write_data->register_low);
-    xTaskCreate(x3d_writing_task, "x3d_writing_task", 2048, write_data, 10, &x3d_processing_task_handle);
+    xTaskCreate(x3d_writing_task, "x3d_writing_task", 4096, write_data, 10, &x3d_processing_task_handle);
 }
+
+/***********************************************
+ * X3D unpairing handler
+ */
 
 static void x3d_unpairing_task(void* arg)
 {
@@ -439,7 +470,7 @@ static void x3d_unpairing_task(void* arg)
 
     uint8_t ext_header[] = {0x98, 0x00};
     uint8_t payload_index = x3d_prepare_message(unpairing_data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
-    x3d_set_message_retrans(x3d_buffer, payload_index, 4, unpairing_data->transfer);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, unpairing_data->transfer);
     x3d_set_unpair_device(x3d_buffer, payload_index, unpairing_data->target);
 
     int no_of_devices = get_highest_bit(unpairing_data->transfer) + 1;
@@ -448,7 +479,7 @@ static void x3d_unpairing_task(void* arg)
     x3d_transmit();
 
     // wait to process responses
-    vTaskDelay(pdMS_TO_TICKS(no_of_devices * 4 * X3D_MSG_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(no_of_devices * X3D_DEFAULT_MSG_RETRY * X3D_MSG_DELAY_MS));
 
     free(unpairing_data);
     set_status(MQTT_STATUS_IDLE);
@@ -480,6 +511,73 @@ void process_unpairing(cJSON *cmd)
     ESP_LOGI(TAG, "process_unpairing network %d via %04x to %04x", unpairing_data->network, unpairing_data->transfer, unpairing_data->target);
     xTaskCreate(x3d_unpairing_task, "x3d_unpairing_task", 2048, unpairing_data, 10, &x3d_processing_task_handle);
 }
+
+/***********************************************
+ * X3D temp message handler
+ */
+
+static void x3d_temp_task(void* arg)
+{
+    set_status(MQTT_STATUS_TEMP);
+    x3d_temp_data_t *temp_data = (x3d_temp_data_t *)arg;
+
+    uint8_t ext_header[] = {0x98, 0x08, temp_data->room, temp_data->temp & 0xff, (temp_data->temp >> 8) & 0xff};
+    uint8_t payload_index = x3d_prepare_message(temp_data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_TEMP_MSG_RETRY, temp_data->transfer);
+    x3d_set_ping_device(x3d_buffer, payload_index, temp_data->target);
+
+    int no_of_devices = get_highest_bit(temp_data->transfer) + 1;
+
+    // transfer buffer
+    x3d_transmit();
+
+    // wait to process responses
+    vTaskDelay(pdMS_TO_TICKS(no_of_devices * X3D_DEFAULT_MSG_RETRY * X3D_MSG_DELAY_MS));
+
+    free(temp_data);
+    set_status(MQTT_STATUS_IDLE);
+    x3d_processing_task_handle = NULL;
+    vTaskDelete(NULL);
+}
+
+void process_temp(cJSON *cmd)
+{
+    if (x3d_processing_task_handle != NULL)
+    {
+        ESP_LOGE(TAG, "X3D message processing in progress");
+        return;
+    }
+
+    cJSON *network = cJSON_GetObjectItem(cmd, MQTT_JSON_NETWORK);
+    cJSON *transfer = cJSON_GetObjectItem(cmd, MQTT_JSON_TRANSFER);
+    cJSON *target = cJSON_GetObjectItem(cmd, MQTT_JSON_TARGET);
+    cJSON *temp = cJSON_GetObjectItem(cmd, MQTT_JSON_TEMP);
+    cJSON *room = cJSON_GetObjectItem(cmd, MQTT_JSON_ROOM);
+
+    if (network == NULL || transfer == NULL || target == NULL || temp == NULL || room == NULL ||
+        !cJSON_IsNumber(network) || !cJSON_IsNumber(transfer) || !cJSON_IsNumber(target) || !cJSON_IsNumber(temp) || !cJSON_IsBool(room))
+    {
+        return;
+    }
+
+    x3d_temp_data_t *temp_data = (x3d_temp_data_t *)malloc(sizeof(x3d_temp_data_t));
+    temp_data->network = network->valueint;
+    temp_data->transfer = transfer->valueint;
+    temp_data->target = target->valueint;
+    temp_data->temp = temp->valuedouble * 100.0;
+    temp_data->room = 0x00;
+    if (cJSON_IsFalse(room))
+    {
+        temp_data->room = 0x01;
+    }
+
+    ESP_LOGI(TAG, "process_temp network %d via %04x to %04x", temp_data->network, temp_data->transfer, temp_data->target);
+    xTaskCreate(x3d_temp_task, "x3d_temp_task", 2048, temp_data, 10, &x3d_processing_task_handle);
+}
+
+/***********************************************
+ * MQTT message handler
+ */
 
 static inline int mqtt_topic_match(char *topic)
 {
@@ -515,6 +613,10 @@ void mqtt_data(char *topic, char *data)
             else if (strcmp(action->valuestring, MQTT_CMD_UNPAIR) == 0)
             {
                 process_unpairing(cmd);
+            }
+            else if (strcmp(action->valuestring, MQTT_CMD_TEMP) == 0)
+            {
+                process_temp(cmd);
             }
         }
         cJSON_Delete(cmd);

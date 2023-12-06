@@ -93,3 +93,25 @@ Status:
 
 Status:
 * `writing` - device is in writing
+
+### Temp Command
+
+```json
+{
+    "action": "temp",
+    "net": 4,
+    "transfer": 1,
+    "target": 1,
+    "room": false,
+    "temp": 20.0
+}
+```
+
+* **net** - network number, should be 4 or 5
+* **transfer** - bitmask of the devices that should tranfer the message, should always all paired devices, except you want to analyze mesh structure.
+* **target** - bitmask of the devices that should accept the data
+* **room** - bool, true if is room temp, false for external temp
+* **temp** - int, temperature in °C
+
+Status:
+* `temp` - device is in temp sending
