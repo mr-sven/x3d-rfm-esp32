@@ -432,6 +432,7 @@ Then two fixed bytes follows `0x1F 0xFF`.
 
 The next byte is used with nibbles.
 The lower nibble sepcifies the bit number of the new device. The higher nibble is unclear, on Tydom reg process it is 1 on registering the 3rd and 5th device, maybe continious.
+If you reregister the first device, then the higher nibble is also set for the first.
 
 Next is zero byte.
 

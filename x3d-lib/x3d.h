@@ -60,7 +60,8 @@
 
 #define X3D_CRC_SIZE                    sizeof(uint16_t)
 
-#define X3D_MAX_PAYLOAD_DATA_FIELDS     16
+#define X3D_MAX_NET_DEVICES             16
+#define X3D_MAX_PAYLOAD_DATA_FIELDS     (X3D_MAX_NET_DEVICES)
 
 // Header len byte + header chksum i16
 #define X3D_HEADER_CKSUM_DROP_LEN       3
@@ -86,7 +87,7 @@ typedef struct __attribute__((__packed__)) {
     uint8_t reg_low;
     uint16_t target_ack;
     uint16_t data[X3D_MAX_PAYLOAD_DATA_FIELDS];
-} x3d_standard_msg_payload_t, *x3d_standard_msg_payload_p;
+} x3d_standard_msg_payload_t;
 
 /**
  * @brief Initialize the the output message buffer. On reusing the buffer it is enought to execute once.
