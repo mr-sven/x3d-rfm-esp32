@@ -195,12 +195,6 @@ void x3d_set_message_retrans(uint8_t* buffer, int payloadIndex, uint8_t replyCnt
 void x3d_set_pairing_data(uint8_t* buffer, int payloadIndex, uint8_t targetSlot, uint16_t pairingPin, x3d_pair_state_t pairingStatus)
 {
     write_le_u16(0xff1f, buffer, payloadIndex + X3D_OFF_PAIR_UNKNOWN);
-    // add unknown high nibble flag
-    if (targetSlot > 1 && targetSlot & 0x01)
-    {
-        targetSlot |= 0x10;
-    }
-
     write_le_u16(targetSlot, buffer, payloadIndex + X3D_OFF_PAIR_TARGET_SLOT_NO);
     write_le_u16(pairingPin, buffer, payloadIndex + X3D_OFF_PAIR_PIN);
     int packetSize = write_le_u16(pairingStatus, buffer, payloadIndex + X3D_OFF_PAIR_STATE);

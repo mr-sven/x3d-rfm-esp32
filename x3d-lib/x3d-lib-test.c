@@ -63,6 +63,20 @@ void print_buffer(uint8_t* buffer)
     printf("\n");
 }
 
+static inline int get_highest_bit(uint16_t value)
+{
+    return sizeof(unsigned int) * 8 - __builtin_clz(value) - 1;
+}
+
+static inline int no_of_devices(uint16_t mask)
+{
+    return __builtin_popcount(mask);
+}
+
+static inline int get_lowest_zerobit(uint16_t value)
+{
+    return __builtin_ctz(~value);
+}
 
 int main()
 {
@@ -74,8 +88,33 @@ int main()
     uint16_t msgId = 0x1111;
     int replyCnt = 4;
     uint16_t transferSlotMask = 0x0000;
-    uint16_t targetSlotMask = 0x0001;
 
+    uint16_t targetSlotMask = 0b0000000000000000;
+    printf("%d\n", get_highest_bit(targetSlotMask));
+    printf("%d\n", no_of_devices(targetSlotMask));
+    printf("%d\n", get_lowest_zerobit(targetSlotMask));
+
+    printf("\n");
+    targetSlotMask = 0b0000000000000001;
+    printf("%d\n", get_highest_bit(targetSlotMask));
+    printf("%d\n", no_of_devices(targetSlotMask));
+    printf("%d\n", get_lowest_zerobit(targetSlotMask));
+
+    printf("\n");
+    targetSlotMask = 0b0000010000000001;
+    printf("%d\n", get_highest_bit(targetSlotMask));
+    printf("%d\n", no_of_devices(targetSlotMask));
+    printf("%d\n", get_lowest_zerobit(targetSlotMask));
+
+    printf("\n");
+    targetSlotMask = 0xffff;
+    printf("%d\n", get_highest_bit(targetSlotMask));
+    printf("%d\n", no_of_devices(targetSlotMask));
+    printf("%d\n", get_lowest_zerobit(targetSlotMask));
+
+
+
+/*
     x3d_init_message(buffer, deviceId, 0x00);
 
     uint16_t msg_no = 1;
@@ -90,7 +129,7 @@ int main()
 
     var = x3d_dec_msg_id(var, deviceId);
     printf("%04x\n", var);
-
+*/
     /* Pairing messages
     uint8_t extHeader[] = {0x98, 0x00};
     int payloadIndex = x3d_prepare_message_header(buffer, &msgNo, X3D_MSG_TYPE_PAIRING, 0, 0x85, extHeader, sizeof(extHeader), msgId);
