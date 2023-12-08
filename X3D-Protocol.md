@@ -356,6 +356,8 @@ The first byte contains the current target Temperature in 0.5 °C Steps from 0 �
 
 The second byte contains a enum set of flags:
 
+* 0x02 = 0b00000010 = Defrost mode
+* 0x08 = 0b00001000 = Timed mode
 * 0x10 = 0b00010000 = Heater current on
 * 0x20 = 0b00100000 = Heater disabled
 * 0x80 = 0b10000000 = Sensor status available -> Register 16 21, if not set, assume register is zero
@@ -376,17 +378,18 @@ Writes the current target temperatur and the mode. Currently only seen to be wri
 The first byte contains the current target Temperature in 0.5 °C Steps from 0 °C.
 
 The second byte is a enum containing the current mode:
-* 0 = Manual mode
+* 0 = Manual/Automatic mode
 * 2 = Defrost mode
-* 7 = Automatic mode
 * 8 = Timed manual mode (party or holiday)
 
 ### Register 16 41
 
-Sets or gets the current on / off state.
+Sets or gets the current on / off state. Could be a 16 bit enum set,
 
-* 0x39 0x07 = on
-* 0x38 0x07 = off
+* 0x0739 = on
+* 0x0738 = off
+
+So the last bit could be the on/off flag.
 
 ### Register 16 61
 
