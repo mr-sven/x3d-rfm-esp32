@@ -30,7 +30,12 @@
     "freertos.h": "c",
     "timers.h": "c",
     "projdefs.h": "c",
-    "cjson.h": "c"
+    "cjson.h": "c",
+    "mqtt_client.h": "c",
+    "ledc.h": "c",
+    "wifi.h": "c",
+    "x3d.h": "c",
+    "rfm.h": "c"
   },
   "files.exclude": {
     "**/spi_flash/sim/**": true

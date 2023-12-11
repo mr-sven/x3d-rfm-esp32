@@ -13,7 +13,10 @@
 #include "esp_system.h"
 #include "driver/ledc.h"
 
+#include "led.h"
 #include "config.h"
+
+#define RGB_TO_DUTY(x)  (x * (1 << LEDC_DUTY_RES) / 255)
 
 void led_init(void)
 {
@@ -29,13 +32,13 @@ void led_init(void)
 
     ledc_channel_config_t ledc_channel = {
         .speed_mode     = LEDC_MODE,
-        .channel        = LEDC_RED_CHANNEL,
         .timer_sel      = LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
-        .gpio_num       = LEDC_RED_OUTPUT,
         .duty           = 0, // Set duty to 0%
         .hpoint         = 0
     };
+    ledc_channel.channel        = LEDC_RED_CHANNEL;
+    ledc_channel.gpio_num       = LEDC_RED_OUTPUT;
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
     ledc_channel.channel        = LEDC_GREEN_CHANNEL;
@@ -46,12 +49,15 @@ void led_init(void)
     ledc_channel.gpio_num       = LEDC_BLUE_OUTPUT;
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
-    // #define LEDC_DUTY                          (4096) // Set duty to 50%. (2 ** 13) * 50% = 4096
-    // Set duty to 50%
-    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_RED_CHANNEL, 4096));
+    led_color(0xff, 0, 0);
+}
+
+void led_color(uint8_t red, uint8_t green, uint8_t blue)
+{
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_RED_CHANNEL, RGB_TO_DUTY((0xff - red))));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_RED_CHANNEL));
-    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_GREEN_CHANNEL, 4096));
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_GREEN_CHANNEL, RGB_TO_DUTY((0xff - green))));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_GREEN_CHANNEL));
-    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_BLUE_CHANNEL, 4096));
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_MODE, LEDC_BLUE_CHANNEL, RGB_TO_DUTY((0xff - blue))));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_BLUE_CHANNEL));
 }

@@ -212,7 +212,7 @@ Current known / seen registers:
 * `0x16 0x61` - (r/w) Party on time in minutes / Holiday time in minutes starting from current time. (Days - 1) * 1440 + Current Time in Minutes
 * `0x16 0x81` - (r/w) Freeze Temp
 * `0x16 0x91` - (r/w) Night Temp and Day Temp
-* `0x18 0x01` - Unknown
+* `0x18 0x01` - (w) Unknown
 * `0x19 0x10` - (r) On time lsb in seconds
 * `0x19 0x90` - (r) On time msb in seconds
 * `0x1a 0x04` - Unknown

@@ -43,7 +43,7 @@ int mqtt_publish(const char *topic, const char *data, int len, int qos, int reta
 int mqtt_subscribe(const char *topic, int qos)
 {
     ESP_LOGI(TAG, "Subscribe: %s", topic);
-    return esp_mqtt_client_subscribe(client, topic, qos);
+    return esp_mqtt_client_subscribe_single(client, topic, qos);
 }
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)

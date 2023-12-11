@@ -13,18 +13,34 @@ Read and write result is published to `/device/esp32/<device-id>/result` topic.
 * `off` - Submittet as LWT, so when the device is not connected it contains this va
 * `idle` - Device is in idle mode
 
+### Info Command
+
+Command:
+```json
+{
+    "action": "info"
+}
+```
+
+Result:
+```json
+{
+    "action": "info",
+    "net_4_mask": 3,
+    "net_5_mask": 0
+}
+```
+
 ### Pairing Command
 
 ```json
 {
     "action": "pair",
-    "net": 4,
-    "noOfDevices": 0
+    "net": 4
 }
 ```
 
 * **net** - network number, should be 4 or 5
-* **noOfDevices** - number of already paired devices
 
 Status:
 * `pairing` - device is in pairing
@@ -37,14 +53,12 @@ Status:
 {
     "action": "unpair",
     "net": 4,
-    "transfer": 1,
     "target": 1
 }
 ```
 
 * **net** - network number, should be 4 or 5
-* **transfer** - bitmask of the devices that should tranfer the message, should always all paired devices, except you want to analyze mesh structure.
-* **target** - bitmask of the device to unpair
+* **target** - zero based number of the device to unpair
 
 ### Read Command
 
@@ -52,7 +66,6 @@ Status:
 {
     "action": "read",
     "net": 4,
-    "transfer": 1,
     "target": 1,
     "regHigh": 22,
     "regLow": 17
@@ -60,8 +73,7 @@ Status:
 ```
 
 * **net** - network number, should be 4 or 5
-* **transfer** - bitmask of the devices that should tranfer the message, should always all paired devices, except you want to analyze mesh structure.
-* **target** - bitmask of the devices that should return their data
+* **target** - optional bitmask of the devices that should return their data
 * **regHigh** - register high number
 * **regLow** - register low number
 
@@ -74,7 +86,6 @@ Status:
 {
     "action": "write",
     "net": 4,
-    "transfer": 1,
     "target": 1,
     "regHigh": 22,
     "regLow": 17,
@@ -85,7 +96,6 @@ Status:
 ```
 
 * **net** - network number, should be 4 or 5
-* **transfer** - bitmask of the devices that should tranfer the message, should always all paired devices, except you want to analyze mesh structure.
 * **target** - bitmask of the devices that should accept the data
 * **regHigh** - register high number
 * **regLow** - register low number
@@ -94,24 +104,66 @@ Status:
 Status:
 * `writing` - device is in writing
 
-### Temp Command
+### Outdoor Temp Command
 
 ```json
 {
-    "action": "temp",
-    "net": 4,
-    "transfer": 1,
-    "target": 1,
-    "room": false,
+    "action": "outdoorTemp",
     "temp": 20.0
 }
 ```
 
-* **net** - network number, should be 4 or 5
-* **transfer** - bitmask of the devices that should tranfer the message, should always all paired devices, except you want to analyze mesh structure.
-* **target** - bitmask of the devices that should accept the data
-* **room** - bool, true if is room temp, false for external temp
-* **temp** - int, temperature in °C
+* **temp** - float, temperature in °C
 
 Status:
 * `temp` - device is in temp sending
+
+
+### Status Command
+
+Command:
+```json
+{
+    "action": "status"
+}
+```
+
+Result:
+```json
+{
+    "action": "status",
+    "values": [
+        {
+            "net": 4,
+            "device": 0,
+            "roomTemp": 19.5,
+            "enabled": true,
+            "setPoint": 20.0,
+            "defrost": false,
+            "timed": false,
+            "heaterOn": false,
+            "heaterStopped": false,
+            "windowOpen": false,
+            "noTempSensor": true,
+            "batteryLow": false
+        },
+        {
+            "net": 4,
+            "device": 1,
+            "roomTemp": 19.5,
+            "enabled": false,
+            "setPoint": 20.0,
+            "defrost": false,
+            "timed": false,
+            "heaterOn": false,
+            "heaterStopped": false,
+            "windowOpen": false,
+            "noTempSensor": true,
+            "batteryLow": false
+        }
+    ]
+}
+```
+
+Status:
+* `status` - device is in status read mode

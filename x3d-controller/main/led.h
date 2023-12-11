@@ -11,3 +11,4 @@
 #pragma once
 
 void led_init(void);
+void led_color(uint8_t red, uint8_t green, uint8_t blue);
