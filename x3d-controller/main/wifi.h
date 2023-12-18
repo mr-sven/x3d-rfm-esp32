@@ -11,5 +11,6 @@
 #pragma once
 
 #include "esp_system.h"
+#include "esp_wifi.h"
 
 esp_err_t wifi_init_sta(void);

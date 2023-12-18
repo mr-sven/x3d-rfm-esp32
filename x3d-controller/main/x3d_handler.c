@@ -116,13 +116,14 @@ void x3d_transmit(void)
  * X3D pairing message handler
  */
 
-x3d_handler_res_t x3d_pairing_proc(x3d_pairing_data_t *data)
+int x3d_pairing_proc(x3d_pairing_data_t *data)
 {
     uint8_t ext_header[] = {0x98, 0x00};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_PAIRING, 0, 0x85, ext_header, sizeof(ext_header));
 
     // get first free slot
-    uint8_t target_slot = get_lowest_zerobit(data->transfer);
+    uint8_t target_device_no = get_lowest_zerobit(data->transfer);
+    uint8_t target_slot = target_device_no;
 
     // generate ack mask from slot number
     uint16_t ack_mask = 1 << target_slot;
@@ -159,10 +160,10 @@ x3d_handler_res_t x3d_pairing_proc(x3d_pairing_data_t *data)
         {
             // update device mask
             data->transfer = data->transfer | ack_mask;
-            return X3D_HANDLER_OK;
+            return target_device_no;
         }
     }
-    return X3D_HANDLER_PAIRING_FAILED;
+    return -1;
 }
 
 /***********************************************
@@ -174,7 +175,9 @@ void x3d_unpairing_proc(x3d_unpairing_data_t *data)
     uint8_t ext_header[] = {0x98, 0x00};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
     x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, data->transfer);
-    x3d_set_unpair_device(x3d_buffer, payload_index, data->target);
+    uint16_t target_mask = (1 << (data->target & 0x0f));
+
+    x3d_set_unpair_device(x3d_buffer, payload_index, target_mask);
 
     // transfer buffer
     x3d_transmit();
@@ -183,7 +186,7 @@ void x3d_unpairing_proc(x3d_unpairing_data_t *data)
     vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_DEFAULT_MSG_RETRY * X3D_MSG_DELAY_MS));
 
     // remove device from transfer mask
-    data->transfer &= ~(data->target);
+    data->transfer &= ~(target_mask);
 }
 
 /***********************************************
@@ -232,7 +235,7 @@ x3d_standard_msg_payload_t * x3d_writing_proc(x3d_write_data_t *data)
 
 void x3d_temp_proc(x3d_temp_data_t *data)
 {
-    uint8_t ext_header[] = {0x98, 0x08, data->room, data->temp & 0xff, (data->temp >> 8) & 0xff};
+    uint8_t ext_header[] = {0x98, 0x08, data->outdoor, data->temp & 0xff, (data->temp >> 8) & 0xff};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
     x3d_set_message_retrans(x3d_buffer, payload_index, X3D_TEMP_MSG_RETRY, data->transfer);
     x3d_set_ping_device(x3d_buffer, payload_index, data->target);

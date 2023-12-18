@@ -25,7 +25,7 @@ typedef struct {
 typedef struct {
     uint8_t network;
     uint16_t transfer;
-    uint16_t target;
+    uint8_t target;
 } x3d_unpairing_data_t;
 
 /// @brief Task processing data for register read
@@ -52,15 +52,9 @@ typedef struct {
     uint8_t network;
     uint16_t transfer;
     uint16_t target;
-    uint8_t room;
+    uint8_t outdoor;
     uint16_t temp;
 } x3d_temp_data_t;
-
-typedef enum {
-    X3D_HANDLER_OK = 0,
-    X3D_HANDLER_NOK = -1,
-    X3D_HANDLER_PAIRING_FAILED = -2,
-} x3d_handler_res_t;
 
 /**
  * @brief Sets the device id for x3d processing
@@ -73,9 +67,9 @@ void x3d_set_device_id(uint32_t device_id);
  * @brief Execute pairing process
  *
  * @param data pointer to x3d_pairing_data_t
- * @return x3d_handler_res_t pairing result
+ * @return int, -1 = error, 0..15 = target device number
  */
-x3d_handler_res_t x3d_pairing_proc(x3d_pairing_data_t *data);
+int x3d_pairing_proc(x3d_pairing_data_t *data);
 
 /**
  * @brief Execute unpairing process

@@ -1,2 +1,3 @@
-main/config.h
 nvs_data.bin
+sdkconfig
+sdkconfig.old

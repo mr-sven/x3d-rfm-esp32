@@ -14,7 +14,18 @@
 #include "driver/ledc.h"
 
 #include "led.h"
-#include "config.h"
+
+#define LEDC_TIMER                         LEDC_TIMER_0
+#define LEDC_MODE                          LEDC_LOW_SPEED_MODE
+#define LEDC_DUTY_RES                      LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
+#define LEDC_FREQUENCY                     (4000) // Frequency in Hertz. Set frequency at 4 kHz
+
+#define LEDC_RED_OUTPUT                    GPIO_NUM_25
+#define LEDC_GREEN_OUTPUT                  GPIO_NUM_32
+#define LEDC_BLUE_OUTPUT                   GPIO_NUM_33
+#define LEDC_RED_CHANNEL                   LEDC_CHANNEL_0
+#define LEDC_GREEN_CHANNEL                 LEDC_CHANNEL_1
+#define LEDC_BLUE_CHANNEL                  LEDC_CHANNEL_2
 
 #define RGB_TO_DUTY(x)  (x * (1 << LEDC_DUTY_RES) / 255)
 

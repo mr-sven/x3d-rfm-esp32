@@ -35,7 +35,10 @@
     "ledc.h": "c",
     "wifi.h": "c",
     "x3d.h": "c",
-    "rfm.h": "c"
+    "rfm.h": "c",
+    "nvs_flash.h": "c",
+    "x3d_handler.h": "c",
+    "ota.h": "c"
   },
   "files.exclude": {
     "**/spi_flash/sim/**": true
@@ -43,4 +46,5 @@
   "search.exclude": {
     "**/spi_flash/sim/**": true
   },
+  "cmake.configureOnOpen": false,
 }
