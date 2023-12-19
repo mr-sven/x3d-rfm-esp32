@@ -8,12 +8,6 @@
  * @copyright Copyright (c) 2023
  *
  */
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-
-#define OTA_DONE_BIT        BIT0
-
-extern EventGroupHandle_t ota_event_group;
 
 void ota_precheck(void);
-void ota_update_task(void *arg);
+void ota_execute(void);

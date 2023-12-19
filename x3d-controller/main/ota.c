@@ -26,8 +26,9 @@
 
 #define HASH_LEN            32 /* SHA-256 digest length */
 #define BUFFSIZE            1024
+#define OTA_DONE_BIT        BIT0
 
-EventGroupHandle_t ota_event_group;
+static EventGroupHandle_t ota_event_group;
 
 static const char *TAG = "OTA";
 
@@ -76,8 +77,6 @@ void ota_precheck(void)
             esp_ota_mark_app_valid_cancel_rollback();
         }
     }
-
-    ota_event_group = xEventGroupCreate();
 }
 
 static void __attribute__((noreturn)) end_task(esp_http_client_handle_t client)
@@ -251,4 +250,12 @@ void ota_update_task(void *arg)
     ESP_LOGI(TAG, "Prepare to restart system!");
     esp_restart();
     return;
+}
+
+void ota_execute(void)
+{
+    ota_event_group = xEventGroupCreate();
+    xTaskCreate(ota_update_task, "ota_update_task", 8192, NULL, 5, NULL);
+    xEventGroupWaitBits(ota_event_group, OTA_DONE_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+    vEventGroupDelete(ota_event_group);
 }

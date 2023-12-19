@@ -34,19 +34,17 @@
 #define MQTT_TOPIC_PREFIX_LEN               20
 #define MQTT_TOPIC_STATUS                   "/status"
 #define MQTT_TOPIC_RESULT                   "/result"
-#define MQTT_TOPIC_NET_4                    "/netMask4"
-#define MQTT_TOPIC_NET_5                    "/netMask5"
 #define MQTT_TOPIC_OUTDOOR_TEMP             "/outdoorTemp"
 #define MQTT_TOPIC_DEVICE_STATUS            "/deviceStatus"
-#define MQTT_TOPIC_RESET                   "/reset"
+#define MQTT_TOPIC_RESET                    "/reset"
+#define MQTT_TOPIC_PAIR                     "/pair"
+#define MQTT_TOPIC_UNPAIR                   "/unpair"
+#define MQTT_TOPIC_READ                     "/read"
 
-#define MQTT_ACTION_DEVICE_STATUS           "deviceStatus"
+#define MQTT_ACTION_READ                    "read"
 
 #define MQTT_TOPIC_CMD                      "/cmd"
-#define MQTT_CMD_PAIR                       "pair"
-#define MQTT_CMD_READ                       "read"
 #define MQTT_CMD_WRITE                      "write"
-#define MQTT_CMD_UNPAIR                     "unpair"
 
 #define MQTT_STATUS_IDLE                    "idle"
 #define MQTT_STATUS_PAIRING                 "pairing"
@@ -64,10 +62,7 @@
 #define MQTT_JSON_REGISTER_HIGH             "regHigh"
 #define MQTT_JSON_REGISTER_LOW              "regLow"
 #define MQTT_JSON_VALUES                    "values"
-#define MQTT_JSON_TRANSFER                  "transfer"
 #define MQTT_JSON_TARGET                    "target"
-#define MQTT_JSON_TEMP                      "temp"
-#define MQTT_JSON_DEVICE                    "device"
 
 #define MQTT_JSON_ROOM_TEMP                 "roomTemp"
 #define MQTT_JSON_SET_POINT                 "setPoint"
@@ -294,11 +289,38 @@ void update_nvs_device_mask(uint8_t network, uint16_t mask)
     }
 }
 
+static void __attribute__((noreturn)) end_task(void *arg)
+{
+    if (arg != NULL)
+    {
+        free(arg);
+    }
+    set_status(MQTT_STATUS_IDLE);
+    x3d_processing_task_handle = NULL;
+    vTaskDelete(NULL);
+    while (1); // should not be reached
+}
+
 void pairing_task(void *arg)
 {
+    uint8_t network  = strtoul(arg, NULL, 10);
+    if (!valid_network(network))
+    {
+        end_task(arg);
+    }
+
+    x3d_pairing_data_t data = {
+        .network = network,
+        .transfer = get_network_mask(network)
+    };
+
+    if (no_of_devices(data.transfer) >= X3D_MAX_NET_DEVICES)
+    {
+        end_task(arg);
+    }
+
     set_status(MQTT_STATUS_PAIRING);
-    x3d_pairing_data_t *data = (x3d_pairing_data_t *)arg;
-    int target_device_no = x3d_pairing_proc(data);
+    int target_device_no = x3d_pairing_proc(&data);
     if (target_device_no == -1)
     {
         set_status(MQTT_STATUS_PAIRING_FAILED);
@@ -306,116 +328,101 @@ void pairing_task(void *arg)
     else
     {
         set_status(MQTT_STATUS_PAIRING_SUCCESS);
-        update_nvs_device_mask(data->network, data->transfer);
+        update_nvs_device_mask(data.network, data.transfer);
 
-        x3d_device_t **devices = get_devices_list(data->network);
+        x3d_device_t **devices = get_devices_list(data.network);
         if (devices[target_device_no] == NULL)
         {
             devices[target_device_no] = (x3d_device_t *)calloc(1, sizeof(x3d_device_t));
             devices[target_device_no]->on_air = 1;
-            publish_device(devices[target_device_no], data->network, target_device_no, 0);
+            publish_device(devices[target_device_no], data.network, target_device_no, 0);
         }
     }
 
-    free(data);
-    set_status(MQTT_STATUS_IDLE);
-    x3d_processing_task_handle = NULL;
-    vTaskDelete(NULL);
-}
-
-void process_pairing(cJSON *cmd)
-{
-    cJSON *network = cJSON_GetObjectItem(cmd, MQTT_JSON_NETWORK);
-    if (network == NULL || !cJSON_IsNumber(network) || !valid_network(network->valueint))
-    {
-        return;
-    }
-
-    x3d_pairing_data_t *data = (x3d_pairing_data_t *)malloc(sizeof(x3d_pairing_data_t));
-    data->network = network->valueint;
-    data->transfer = get_network_mask(data->network);
-
-    if (no_of_devices(data->transfer) >= X3D_MAX_NET_DEVICES)
-    {
-        return;
-    }
-
-    if (x3d_processing_task_handle != NULL)
-    {
-        ESP_LOGE(TAG, "X3D message processing in progress");
-        return;
-    }
-    ESP_LOGI(TAG, "process_pairing network %d", data->network);
-    xTaskCreate(pairing_task, "pairing_task", 2048, data, 10, &x3d_processing_task_handle);
+    end_task(arg);
 }
 
 void unpairing_task(void *arg)
 {
+    char * pEnd;
+    uint8_t network = strtoul(arg, &pEnd, 10);
+    uint8_t target = strtoul(pEnd, NULL, 10);
+
+    if (!valid_network(network))
+    {
+        end_task(arg);
+    }
+
+    x3d_unpairing_data_t data = {
+        .network = network,
+        .target = target & 0x0f,
+        .transfer = get_network_mask(network)
+    };
+
+    if (data.transfer == 0 || (data.transfer & data.target) == 0)
+    {
+        end_task(arg);
+    }
+
     set_status(MQTT_STATUS_UNPAIRING);
-    x3d_unpairing_data_t *data = (x3d_unpairing_data_t *)arg;
+    x3d_unpairing_proc(&data);
+    update_nvs_device_mask(data.network, data.transfer);
 
-    x3d_unpairing_proc(data);
-    update_nvs_device_mask(data->network, data->transfer);
-
-    x3d_device_t **devices = get_devices_list(data->network);
-    if (devices[data->target] != NULL)
+    x3d_device_t **devices = get_devices_list(data.network);
+    if (devices[data.target] != NULL)
     {
-        free(devices[data->target]);
-        devices[data->target] = NULL;
-        publish_device(NULL, data->network, data->target, 0);
+        free(devices[data.target]);
+        devices[data.target] = NULL;
+        publish_device(NULL, data.network, data.target, 0);
     }
 
-    free(data);
-    set_status(MQTT_STATUS_IDLE);
-    x3d_processing_task_handle = NULL;
-    vTaskDelete(NULL);
-}
-
-void process_unpairing(cJSON *cmd)
-{
-    cJSON *network = cJSON_GetObjectItem(cmd, MQTT_JSON_NETWORK);
-    cJSON *target = cJSON_GetObjectItem(cmd, MQTT_JSON_TARGET);
-
-    if (network == NULL || target == NULL ||
-        !cJSON_IsNumber(network) || !cJSON_IsNumber(target) ||
-        !valid_network(network->valueint))
-    {
-        return;
-    }
-
-    x3d_unpairing_data_t *data = (x3d_unpairing_data_t *)malloc(sizeof(x3d_unpairing_data_t));
-    data->network = network->valueint;
-    data->target = target->valueint & 0x0f;
-    data->transfer = get_network_mask(data->network);
-
-    if (data->transfer == 0 ||
-        (data->transfer & data->target) == 0)
-    {
-        return;
-    }
-
-    if (x3d_processing_task_handle != NULL)
-    {
-        ESP_LOGE(TAG, "X3D message processing in progress");
-        return;
-    }
-    ESP_LOGI(TAG, "process_unpairing network %d via %04x to %04x", data->network, data->transfer, data->target);
-    xTaskCreate(unpairing_task, "unpairing_task", 2048, data, 10, &x3d_processing_task_handle);
+    end_task(arg);
 }
 
 void reading_task(void *arg)
 {
-    set_status(MQTT_STATUS_READING);
-    x3d_read_data_t *data = (x3d_read_data_t *)arg;
+    char *pEnd;
+    uint8_t network = strtoul(arg, &pEnd, 10);
+    uint16_t target = strtoul(pEnd, &pEnd, 10);
+    uint8_t register_high = strtoul(pEnd, &pEnd, 10);
+    char *pCheckEnd = pEnd;
+    uint8_t register_low = strtoul(pEnd, &pCheckEnd, 10);
 
-    x3d_standard_msg_payload_t *payload = x3d_reading_proc(data);
+    // check if only three parameters given
+    if (pCheckEnd == pEnd)
+    {
+        register_low = register_high;
+        register_high = target;
+        target = get_network_mask(network);
+    }
+
+    if (!valid_network(network) || no_of_devices(target) == 0)
+    {
+        end_task(arg);
+    }
+
+    x3d_read_data_t data = {
+        .network = network,
+        .transfer = get_network_mask(network),
+        .target = target,
+        .register_high = register_high,
+        .register_low = register_low
+    };
+
+    if (data.transfer == 0 || (data.transfer & data.target) == 0)
+    {
+        end_task(arg);
+    }
+
+    set_status(MQTT_STATUS_READING);
+    x3d_standard_msg_payload_t *payload = x3d_reading_proc(&data);
 
     ESP_LOGI(TAG, "read register %02x - %02x from %04x", payload->reg_high, payload->reg_low, payload->target_ack);
 
     int data_slots = ((payload->action & 0xf0) >> 4) + 1;
     cJSON *root = cJSON_CreateObject();
-	cJSON_AddStringToObject(root, MQTT_JSON_ACTION, MQTT_CMD_READ);
-	cJSON_AddNumberToObject(root, MQTT_JSON_NETWORK, data->network);
+	cJSON_AddStringToObject(root, MQTT_JSON_ACTION, MQTT_ACTION_READ);
+	cJSON_AddNumberToObject(root, MQTT_JSON_NETWORK, data.network);
 	cJSON_AddNumberToObject(root, MQTT_JSON_ACK, payload->target_ack);
 	cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_HIGH, payload->reg_high);
 	cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_LOW, payload->reg_low);
@@ -430,52 +437,7 @@ void reading_task(void *arg)
     mqtt_publish_subtopic(MQTT_TOPIC_RESULT, json_string, strlen(json_string), 0, 0);
     free(json_string);
 
-    free(data);
-    set_status(MQTT_STATUS_IDLE);
-    x3d_processing_task_handle = NULL;
-    vTaskDelete(NULL);
-}
-
-void process_reading(cJSON *cmd)
-{
-    cJSON *network = cJSON_GetObjectItem(cmd, MQTT_JSON_NETWORK);
-    cJSON *target = cJSON_GetObjectItem(cmd, MQTT_JSON_TARGET);
-    cJSON *register_high = cJSON_GetObjectItem(cmd, MQTT_JSON_REGISTER_HIGH);
-    cJSON *register_low = cJSON_GetObjectItem(cmd, MQTT_JSON_REGISTER_LOW);
-    if (network == NULL || register_high == NULL || register_low == NULL ||
-        !cJSON_IsNumber(network) || !cJSON_IsNumber(register_high) || !cJSON_IsNumber(register_low) ||
-        !valid_network(network->valueint))
-    {
-        return;
-    }
-
-    x3d_read_data_t *data = (x3d_read_data_t *)malloc(sizeof(x3d_read_data_t));
-    data->network = network->valueint;
-    data->transfer = get_network_mask(data->network);
-    if (target != NULL && cJSON_IsNumber(target))
-    {
-        data->target = target->valueint;
-    }
-    else
-    {
-        data->target = get_network_mask(data->network);
-    }
-    data->register_high = register_high->valueint;
-    data->register_low = register_low->valueint;
-
-    if (data->transfer == 0 ||
-        (data->transfer & data->target) == 0)
-    {
-        return;
-    }
-
-    if (x3d_processing_task_handle != NULL)
-    {
-        ESP_LOGE(TAG, "X3D message processing in progress");
-        return;
-    }
-    ESP_LOGI(TAG, "process_reading network %d via %04x from %04x register %02x - %02x", data->network, data->transfer, data->target, data->register_high, data->register_low);
-    xTaskCreate(reading_task, "reading_task", 4096, data, 10, &x3d_processing_task_handle);
+    end_task(arg);
 }
 
 void writing_task(void *arg)
@@ -577,11 +539,11 @@ void process_writing(cJSON *cmd)
 
 void outdoor_temp_task(void *arg)
 {
+    double temp = strtod(arg, NULL);
     set_status(MQTT_STATUS_TEMP);
-    uint16_t *temp_value = (uint16_t *)arg;
     x3d_temp_data_t data = {
         .outdoor = 0x01,
-        .temp = *temp_value
+        .temp = temp * 100.0
     };
 
     if (no_of_devices(net_4_device_mask))
@@ -600,25 +562,7 @@ void outdoor_temp_task(void *arg)
         x3d_temp_proc(&data);
     }
 
-    free(temp_value);
-    set_status(MQTT_STATUS_IDLE);
-    x3d_processing_task_handle = NULL;
-    vTaskDelete(NULL);
-}
-
-void process_outdoor_temp(char *data)
-{
-    double temp = strtod(data, NULL);
-    uint16_t *temp_value = (uint16_t *)malloc(sizeof(uint16_t));
-    *temp_value = temp * 100.0;
-
-    if (x3d_processing_task_handle != NULL)
-    {
-        ESP_LOGE(TAG, "X3D message processing in progress");
-        return;
-    }
-    ESP_LOGI(TAG, "process_outdoor_temp network %f °C", temp);
-    xTaskCreate(outdoor_temp_task, "outdoor_temp_task", 2048, temp_value, 10, &x3d_processing_task_handle);
+    end_task(arg);
 }
 
 void load_register(x3d_device_t **devices, uint8_t network, uint16_t device_mask)
@@ -717,43 +661,38 @@ void load_register(x3d_device_t **devices, uint8_t network, uint16_t device_mask
     }
 }
 
-void process_device_status_task(void *arg)
+void device_status_task(void *arg)
 {
+    uint8_t network = strtoul(arg, NULL, 10);
+    if (!valid_network(network))
+    {
+        end_task(arg);
+    }
+
     set_status(MQTT_STATUS_STATUS);
-    uint8_t *network = (uint8_t *)arg;
-    uint16_t device_mask = get_network_mask(*network);
+    uint16_t device_mask = get_network_mask(network);
     if (no_of_devices(device_mask))
     {
-        x3d_device_t **devices = get_devices_list(*network);
-        load_register(devices, *network, device_mask);
+        x3d_device_t **devices = get_devices_list(network);
+        load_register(devices, network, device_mask);
         for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
         {
-            publish_device(devices[i], *network, i, 1);
+            publish_device(devices[i], network, i, 1);
         }
     }
 
-    free(network);
-    set_status(MQTT_STATUS_IDLE);
-    x3d_processing_task_handle = NULL;
-    vTaskDelete(NULL);
+    end_task(arg);
 }
 
-void process_device_status(char *data)
+void execute_task(TaskFunction_t pxTaskCode, const char * const pcName, const configSTACK_DEPTH_TYPE usStackDepth, void * const pvParameters)
 {
-    uint8_t *network = (uint8_t *)malloc(sizeof(uint8_t));
-    *network  = atoi(data);
-    if (!valid_network(*network))
-    {
-        return;
-    }
-
     if (x3d_processing_task_handle != NULL)
     {
         ESP_LOGE(TAG, "X3D message processing in progress");
         return;
     }
-    ESP_LOGI(TAG, "process_device_status");
-    xTaskCreate(process_device_status_task, "process_device_status_task", 4096, network, 10, &x3d_processing_task_handle);
+    ESP_LOGI(TAG, "Start: %s", pcName);
+    xTaskCreate(pxTaskCode, pcName, usStackDepth, pvParameters, 10, &x3d_processing_task_handle);
 }
 
 /***********************************************
@@ -774,32 +713,32 @@ void mqtt_data(char *topic, char *data)
         cJSON *action = cJSON_GetObjectItem(cmd, MQTT_JSON_ACTION);
         if (action != NULL)
         {
-            if (strcmp(action->valuestring, MQTT_CMD_PAIR) == 0)
-            {
-                process_pairing(cmd);
-            }
-            else if (strcmp(action->valuestring, MQTT_CMD_READ) == 0)
-            {
-                process_reading(cmd);
-            }
-            else if (strcmp(action->valuestring, MQTT_CMD_WRITE) == 0)
+            if (strcmp(action->valuestring, MQTT_CMD_WRITE) == 0)
             {
                 process_writing(cmd);
-            }
-            else if (strcmp(action->valuestring, MQTT_CMD_UNPAIR) == 0)
-            {
-                process_unpairing(cmd);
             }
         }
         cJSON_Delete(cmd);
     }
+    else if (strcmp(sub_topic, MQTT_TOPIC_PAIR) == 0)
+    {
+        execute_task(pairing_task, "pairing_task", 4096, strdup(data));
+    }
+    else if (strcmp(sub_topic, MQTT_TOPIC_UNPAIR) == 0)
+    {
+        execute_task(unpairing_task, "unpairing_task", 2048, strdup(data));
+    }
+    else if (strcmp(sub_topic, MQTT_TOPIC_READ) == 0)
+    {
+        execute_task(reading_task, "reading_task", 4096, strdup(data));
+    }
     else if (strcmp(sub_topic, MQTT_TOPIC_OUTDOOR_TEMP) == 0)
     {
-        process_outdoor_temp(data);
+        execute_task(outdoor_temp_task, "outdoor_temp_task", 2048, strdup(data));
     }
     else if (strcmp(sub_topic, MQTT_TOPIC_DEVICE_STATUS) == 0)
     {
-        process_device_status(data);
+        execute_task(device_status_task, "device_status_task", 4096, strdup(data));
     }
     else if (strcmp(sub_topic, MQTT_TOPIC_RESET) == 0)
     {
@@ -814,6 +753,8 @@ void mqtt_connected(void)
     mqtt_subscribe_subtopic(MQTT_TOPIC_OUTDOOR_TEMP, 0);
     mqtt_subscribe_subtopic(MQTT_TOPIC_DEVICE_STATUS, 0);
     mqtt_subscribe_subtopic(MQTT_TOPIC_RESET, 0);
+    mqtt_subscribe_subtopic(MQTT_TOPIC_PAIR, 0);
+    mqtt_subscribe_subtopic(MQTT_TOPIC_UNPAIR, 0);
     set_status(MQTT_STATUS_IDLE);
     init_mqtt_topic_devices();
     led_color(0, 20, 0);
@@ -833,9 +774,7 @@ void app_main(void)
     led_init();
 
     ESP_ERROR_CHECK(wifi_init_sta());
-    xTaskCreate(ota_update_task, "ota_update_task", 8192, NULL, 5, NULL);
-    xEventGroupWaitBits(ota_event_group, OTA_DONE_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
-    vEventGroupDelete(ota_event_group);
+    ota_execute();
 
     nvs_handle_t nvs_ctx_handle;
     if (nvs_open("ctx", NVS_READONLY, &nvs_ctx_handle) == ESP_OK)
