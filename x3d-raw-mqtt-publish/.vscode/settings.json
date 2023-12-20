@@ -25,6 +25,7 @@
     "mqtt.h": "c",
     "system_error": "c",
     "regex": "c",
-    "sstream": "c"
+    "sstream": "c",
+    "gpio.h": "c"
   }
 }

@@ -16,7 +16,6 @@
 
 #include "nvs_flash.h"
 
-#include "config.h"
 #include "wifi.h"
 #include "rfm.h"
 #include "mqtt.h"

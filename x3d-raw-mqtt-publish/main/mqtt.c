@@ -18,7 +18,6 @@
 #include "mqtt_client.h"
 
 #include "mqtt.h"
-#include "config.h"
 
 static const char *TAG = "MQTT";
 
@@ -84,7 +83,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 void mqtt_app_start(void)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.uri = MQTT_BROKER_URL,
+        .broker.address.uri = CONFIG_X3D_BROKER_URL,
     };
 
     client = esp_mqtt_client_init(&mqtt_cfg);

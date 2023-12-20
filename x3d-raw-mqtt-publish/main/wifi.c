@@ -16,7 +16,6 @@
 #include "esp_log.h"
 
 #include "wifi.h"
-#include "config.h"
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
@@ -24,8 +23,11 @@ static EventGroupHandle_t s_wifi_event_group;
 /* The event group allows multiple bits for each event, but we only care about two events:
  * - we are connected to the AP with an IP
  * - we failed to connect after the maximum amount of retries */
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT      BIT1
+#define WIFI_CONNECTED_BIT                  BIT0
+#define WIFI_FAIL_BIT                       BIT1
+
+#define WIFI_MAXIMUM_RETRY                  5
+#define WIFI_SCAN_AUTH_MODE_THRESHOLD       WIFI_AUTH_WPA2_PSK
 
 static const char *TAG = "WFSTA";
 
@@ -81,8 +83,8 @@ esp_err_t wifi_init_sta(void)
 
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = WIFI_SSID,
-            .password = WIFI_PASS,
+            .ssid = CONFIG_X3D_WIFI_SSID,
+            .password = CONFIG_X3D_WIFI_PASSWORD,
             .threshold.authmode = WIFI_SCAN_AUTH_MODE_THRESHOLD,
             .sae_pwe_h2e = WPA3_SAE_PWE_BOTH
         }
