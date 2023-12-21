@@ -55,6 +55,7 @@
 #define MQTT_STATUS_UNPAIRING               "unpairing"
 #define MQTT_STATUS_TEMP                    "temp"
 #define MQTT_STATUS_STATUS                  "status"
+#define MQTT_STATUS_RESET                   "reset"
 
 #define MQTT_JSON_ACTION                    "action"
 #define MQTT_JSON_NETWORK                   "net"
@@ -68,6 +69,9 @@
 #define MQTT_JSON_SET_POINT                 "setPoint"
 #define MQTT_JSON_ENABLED                   "enabled"
 #define MQTT_JSON_ON_AIR                    "onAir"
+#define MQTT_JSON_SET_POINT_DAY             "setPointDay"
+#define MQTT_JSON_SET_POINT_NIGHT           "setPointNight"
+#define MQTT_JSON_SET_POINT_DEFROST         "setPointDefrost"
 #define MQTT_JSON_FLAGS                     "flags"
 
 #define MQTT_JSON_DEFROST                   "defrost"
@@ -101,6 +105,9 @@
 typedef struct {
     uint16_t room_temp;
     uint8_t set_point;
+    uint8_t set_point_day;
+    uint8_t set_point_night;
+    uint8_t set_point_defrost;
     int on_air: 1;
     int enabled: 1;
     int defrost: 1;
@@ -216,6 +223,9 @@ void publish_device(x3d_device_t *device, uint8_t network, int id, int update)
         cJSON *root = cJSON_CreateObject();
         cJSON_AddNumberToObject(root, MQTT_JSON_ROOM_TEMP, (double)device->room_temp / 100.0);
         cJSON_AddNumberToObject(root, MQTT_JSON_SET_POINT, (double)device->set_point * 0.5);
+        cJSON_AddNumberToObject(root, MQTT_JSON_SET_POINT_DAY, (double)device->set_point_day * 0.5);
+        cJSON_AddNumberToObject(root, MQTT_JSON_SET_POINT_NIGHT, (double)device->set_point_night * 0.5);
+        cJSON_AddNumberToObject(root, MQTT_JSON_SET_POINT_DEFROST, (double)device->set_point_defrost * 0.5);
         cJSON_AddBoolToObject(root, MQTT_JSON_ENABLED, device->enabled);
         cJSON_AddBoolToObject(root, MQTT_JSON_ON_AIR, device->on_air);
         cJSON *flags = cJSON_AddArrayToObject(root, MQTT_JSON_FLAGS);
@@ -565,6 +575,60 @@ void outdoor_temp_task(void *arg)
     end_task(arg);
 }
 
+void read_reg_to_devices(x3d_device_t **devices, x3d_read_data_t *data, uint8_t register_high, uint8_t register_low)
+{
+    data->register_high = register_high;
+    data->register_low = register_low;
+    uint16_t register_switch = (register_high << 8) | register_low;
+    x3d_standard_msg_payload_t *payload = x3d_reading_proc(data);
+    for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
+    {
+        if (devices[i] == NULL)
+        {
+            continue;
+        }
+        if (payload->target_ack & (1 << i))
+        {
+            devices[i]->on_air = 1;
+            switch (register_switch)
+            {
+                case 0x1511:
+                    devices[i]->room_temp = payload->data[i];
+                    break;
+                case 0x1611:
+                    devices[i]->set_point = payload->data[i] & 0xff;
+                    uint16_t flags = payload->data[i] & 0xff00;
+                    devices[i]->defrost = FLAG_TO_BITFIELD(flags, X3D_FLAG_DEFROST);
+                    devices[i]->timed = FLAG_TO_BITFIELD(flags, X3D_FLAG_TIMED);
+                    devices[i]->heater_on = FLAG_TO_BITFIELD(flags, X3D_FLAG_HEATER_ON);
+                    devices[i]->heater_stopped = FLAG_TO_BITFIELD(flags, X3D_FLAG_HEATER_STOPPED);
+                    break;
+                case 0x1621:
+                    devices[i]->window_open = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_WINDOW_OPEN);
+                    devices[i]->no_temp_sensor = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_NO_TEMP_SENSOR);
+                    devices[i]->battery_low = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_BATTERY_LOW);
+                    break;
+                case 0x1641:
+                    devices[i]->enabled = FLAG_TO_BITFIELD(payload->data[i], 0x0001);
+                    break;
+                case 0x1661:
+                    break;
+                case 0x1681:
+                    devices[i]->set_point_defrost = payload->data[i] & 0xff;
+                    break;
+                case 0x1691:
+                    devices[i]->set_point_night = payload->data[i] & 0xff;
+                    devices[i]->set_point_day = (payload->data[i] >> 8) & 0xff;
+                    break;
+            }
+        }
+        else if (payload->target & (1 << i))
+        {
+            devices[i]->on_air = 0;
+        }
+    }
+}
+
 void load_register(x3d_device_t **devices, uint8_t network, uint16_t device_mask)
 {
     x3d_read_data_t data = {
@@ -573,92 +637,12 @@ void load_register(x3d_device_t **devices, uint8_t network, uint16_t device_mask
         .target = device_mask
     };
 
-    data.register_high = 0x15;
-    data.register_low = 0x11;
-    x3d_standard_msg_payload_t *payload = x3d_reading_proc(&data);
-    for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
-    {
-        if (devices[i] == NULL)
-        {
-            continue;
-        }
-        if (payload->target_ack & (1 << i))
-        {
-            devices[i]->room_temp = payload->data[i];
-            devices[i]->on_air = 1;
-        }
-        else if (device_mask & (1 << i))
-        {
-            devices[i]->on_air = 0;
-        }
-    }
-
-    data.register_high = 0x16;
-    data.register_low = 0x11;
-    payload = x3d_reading_proc(&data);
-    for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
-    {
-        if (devices[i] == NULL)
-        {
-            continue;
-        }
-        if (payload->target_ack & (1 << i))
-        {
-            devices[i]->set_point = payload->data[i] & 0xff;
-            uint16_t flags = payload->data[i] & 0xff00;
-            devices[i]->defrost = FLAG_TO_BITFIELD(flags, X3D_FLAG_DEFROST);
-            devices[i]->timed = FLAG_TO_BITFIELD(flags, X3D_FLAG_TIMED);
-            devices[i]->heater_on = FLAG_TO_BITFIELD(flags, X3D_FLAG_HEATER_ON);
-            devices[i]->heater_stopped = FLAG_TO_BITFIELD(flags, X3D_FLAG_HEATER_STOPPED);
-            devices[i]->on_air = 1;
-        }
-        else if (device_mask & (1 << i))
-        {
-            devices[i]->on_air = 0;
-        }
-    }
-
-    data.register_high = 0x16;
-    data.register_low = 0x21;
-    payload = x3d_reading_proc(&data);
-    for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
-    {
-        if (devices[i] == NULL)
-        {
-            continue;
-        }
-        if (payload->target_ack & (1 << i))
-        {
-            devices[i]->window_open = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_WINDOW_OPEN);
-            devices[i]->no_temp_sensor = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_NO_TEMP_SENSOR);
-            devices[i]->battery_low = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_BATTERY_LOW);
-            devices[i]->on_air = 1;
-        }
-        else if (device_mask & (1 << i))
-        {
-            devices[i]->on_air = 0;
-        }
-    }
-
-    data.register_high = 0x16;
-    data.register_low = 0x41;
-    payload = x3d_reading_proc(&data);
-    for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
-    {
-        if (devices[i] == NULL)
-        {
-            continue;
-        }
-        if (payload->target_ack & (1 << i))
-        {
-            devices[i]->enabled = FLAG_TO_BITFIELD(payload->data[i], 0x0001);
-            devices[i]->on_air = 1;
-        }
-        else if (device_mask & (1 << i))
-        {
-            devices[i]->on_air = 0;
-        }
-    }
+    read_reg_to_devices(devices, &data, 0x15, 0x11);
+    read_reg_to_devices(devices, &data, 0x16, 0x11);
+    read_reg_to_devices(devices, &data, 0x16, 0x21);
+    read_reg_to_devices(devices, &data, 0x16, 0x41);
+    read_reg_to_devices(devices, &data, 0x16, 0x81);
+    read_reg_to_devices(devices, &data, 0x16, 0x91);
 }
 
 void device_status_task(void *arg)
@@ -742,6 +726,7 @@ void mqtt_data(char *topic, char *data)
     }
     else if (strcmp(sub_topic, MQTT_TOPIC_RESET) == 0)
     {
+        set_status(MQTT_STATUS_RESET);
         ESP_LOGI(TAG, "Prepare to restart system!");
         esp_restart();
     }
