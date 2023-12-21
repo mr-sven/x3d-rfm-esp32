@@ -160,6 +160,25 @@ void ota_update_task(void *arg)
                         ESP_LOGI(TAG, "Running firmware version: %s", running_app_info.version);
                     }
 
+                    const esp_partition_t* last_invalid_app = esp_ota_get_last_invalid_partition();
+                    // check current version with last invalid partition
+                    if (last_invalid_app != NULL)
+                    {
+                        esp_app_desc_t invalid_app_info;
+                        if (esp_ota_get_partition_description(last_invalid_app, &invalid_app_info) == ESP_OK)
+                        {
+                            ESP_LOGI(TAG, "Last invalid firmware version: %s", invalid_app_info.version);
+                        }
+
+                        if (memcmp(invalid_app_info.version, new_app_info.version, sizeof(new_app_info.version)) == 0)
+                        {
+                            ESP_LOGW(TAG, "New version is the same as invalid version.");
+                            ESP_LOGW(TAG, "Previously, there was an attempt to launch the firmware with %s version, but it failed.", invalid_app_info.version);
+                            ESP_LOGW(TAG, "The firmware has been rolled back to the previous version.");
+                            end_task(client);
+                        }
+                    }
+
                     if (memcmp(new_app_info.version, running_app_info.version, sizeof(new_app_info.version)) == 0)
                     {
                         ESP_LOGW(TAG, "Current running version is the same as a new. We will not continue the update.");
