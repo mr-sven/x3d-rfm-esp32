@@ -18,8 +18,9 @@
 #include "x3d.h"
 #include "x3d_handler.h"
 
-#define X3D_DEFAULT_MSG_RETRY             4
-#define X3D_TEMP_MSG_RETRY                1
+#define X3D_DEFAULT_MSG_READ_RETRY          2
+#define X3D_DEFAULT_MSG_RETRY               4
+#define X3D_TEMP_MSG_RETRY                  1
 
 uint32_t x3d_device_id;
 uint8_t x3d_buffer[64];
@@ -197,7 +198,7 @@ x3d_standard_msg_payload_t * x3d_reading_proc(x3d_read_data_t *data)
 {
     uint8_t ext_header[] = {0x98, 0x00};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
-    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, data->transfer);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_READ_RETRY, data->transfer);
     x3d_set_register_read(x3d_buffer, payload_index, data->target, data->register_high, data->register_low);
 
     // transfer buffer
