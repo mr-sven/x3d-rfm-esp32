@@ -46,6 +46,7 @@
 #define MQTT_TOPIC_CMD                      "/cmd"
 #define MQTT_CMD_WRITE                      "write"
 
+#define MQTT_STATUS_OFF                     "off"
 #define MQTT_STATUS_IDLE                    "idle"
 #define MQTT_STATUS_PAIRING                 "pairing"
 #define MQTT_STATUS_PAIRING_SUCCESS         "pairing success"
@@ -56,6 +57,7 @@
 #define MQTT_STATUS_TEMP                    "temp"
 #define MQTT_STATUS_STATUS                  "status"
 #define MQTT_STATUS_RESET                   "reset"
+#define MQTT_STATUS_START                   "start"
 
 #define MQTT_JSON_ACTION                    "action"
 #define MQTT_JSON_NETWORK                   "net"
@@ -754,6 +756,7 @@ void mqtt_connected(void)
     mqtt_subscribe_subtopic(MQTT_TOPIC_RESET, 0);
     mqtt_subscribe_subtopic(MQTT_TOPIC_PAIR, 0);
     mqtt_subscribe_subtopic(MQTT_TOPIC_UNPAIR, 0);
+    set_status(MQTT_STATUS_START);
     set_status(MQTT_STATUS_IDLE);
     init_mqtt_topic_devices();
     led_color(0, 20, 0);
@@ -816,6 +819,6 @@ void app_main(void)
 
     char topic[128];
     strcpy(topic, mqtt_topic_prefix);
-    strcpy(topic, MQTT_TOPIC_STATUS);
-    mqtt_app_start(topic, "off", 3, 0, 1);
+    strcat(topic, MQTT_TOPIC_STATUS);
+    mqtt_app_start(topic, MQTT_STATUS_OFF, strlen(MQTT_STATUS_OFF), 0, 1);
 }
