@@ -72,7 +72,11 @@ Publish outdoor temperature to all actors to that the thermostates can display i
 This topic starts pairing mode.
 
 * Topic: `/device/esp32/<device-id>/pair`
-* Payload: 4 or 5, the network number, everything else is ignored
+* Payload: `<netNumber> <deviceBit?>`
+  * netNumber: 4 or 5, the network number, everything else is ignored
+  * deviceBit optional: 0 to 15, bit number of the device to start pair
+
+If deviceBit is submitted, the specified device is switched to pairing mode and is not responding anymore until timeout or device pairing is done.
 
 Response is published in status topic:
 * `pairing` - device is in pairing

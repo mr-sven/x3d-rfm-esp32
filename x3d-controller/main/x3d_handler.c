@@ -176,7 +176,7 @@ void x3d_unpairing_proc(x3d_unpairing_data_t *data)
     uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_NONE};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
     x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, data->transfer);
-    uint16_t target_mask = (1 << (data->target & 0x0f));
+    uint16_t target_mask = 1 << (data->target & 0x0f);
 
     x3d_set_unpair_device(x3d_buffer, payload_index, target_mask);
 

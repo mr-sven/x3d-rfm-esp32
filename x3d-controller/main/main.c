@@ -303,41 +303,69 @@ static void __attribute__((noreturn)) end_task(void *arg)
 
 void pairing_task(void *arg)
 {
-    uint8_t network  = strtoul(arg, NULL, 10);
+    char * pEnd;
+    uint8_t network = strtoul(arg, &pEnd, 10);
+    char *pCheckEnd = pEnd;
+    uint8_t target = strtoul(pEnd, &pCheckEnd, 10);
     if (!valid_network(network))
     {
         end_task(arg);
     }
-
-    x3d_pairing_data_t data = {
-        .network = network,
-        .transfer = get_network_mask(network)
-    };
-
-    if (no_of_devices(data.transfer) >= X3D_MAX_NET_DEVICES)
+    
+    // check if only one parameters given then own pairing process is started
+    if (pCheckEnd == pEnd)
     {
-        end_task(arg);
-    }
+        x3d_pairing_data_t data = {
+            .network = network,
+            .transfer = get_network_mask(network)
+        };
 
-    set_status(MQTT_STATUS_PAIRING);
-    int target_device_no = x3d_pairing_proc(&data);
-    if (target_device_no == -1)
-    {
-        set_status(MQTT_STATUS_PAIRING_FAILED);
-    }
-    else
-    {
-        set_status(MQTT_STATUS_PAIRING_SUCCESS);
-        update_nvs_device_mask(data.network, data.transfer);
-
-        x3d_device_t **devices = get_devices_list(data.network);
-        if (devices[target_device_no] == NULL)
+        if (no_of_devices(data.transfer) >= X3D_MAX_NET_DEVICES)
         {
-            devices[target_device_no] = (x3d_device_t *)calloc(1, sizeof(x3d_device_t));
-            devices[target_device_no]->on_air = 1;
-            publish_device(devices[target_device_no], data.network, target_device_no, 0);
+            end_task(arg);
+        }
+
+        set_status(MQTT_STATUS_PAIRING);
+        int target_device_no = x3d_pairing_proc(&data);
+        if (target_device_no == -1)
+        {
+            set_status(MQTT_STATUS_PAIRING_FAILED);
+        }
+        else
+        {
+            set_status(MQTT_STATUS_PAIRING_SUCCESS);
+            update_nvs_device_mask(data.network, data.transfer);
+
+            x3d_device_t **devices = get_devices_list(data.network);
+            if (devices[target_device_no] == NULL)
+            {
+                devices[target_device_no] = (x3d_device_t *)calloc(1, sizeof(x3d_device_t));
+                devices[target_device_no]->on_air = 1;
+                publish_device(devices[target_device_no], data.network, target_device_no, 0);
+            }
         }
     }
+    // start pairing on target device
+    else
+    {
+        x3d_write_data_t data = {
+            .network = network,
+            .transfer = get_network_mask(network),
+            .target = 1 << (target & 0x0f),
+            .register_high = X3D_REG_H(X3D_REG_START_PAIR),
+            .register_low = X3D_REG_L(X3D_REG_START_PAIR),
+            .values = { 0 }
+        };
+
+        if (data.transfer == 0 ||
+            (data.transfer & data.target) == 0)
+        {
+            end_task(arg);
+        }
+
+        set_status(MQTT_STATUS_PAIRING);
+        x3d_writing_proc(&data);
+    }    
 
     end_task(arg);
 }
