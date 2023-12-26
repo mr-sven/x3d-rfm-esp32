@@ -305,15 +305,15 @@ uint16_t x3d_get_retrans_ack(uint8_t* buffer, int payloadIndex)
     return ack;
 }
 
-uint16_t x3d_enc_msg_id(uint16_t *msg_id_p, uint32_t deviceId)
+uint16_t x3d_enc_msg_id(uint16_t *pMsgId, uint32_t deviceId)
 {
-    (*msg_id_p)++;
-    if (*msg_id_p == 0)
+    (*pMsgId)++;
+    if (*pMsgId == 0)
     {
-        *msg_id_p = 1;
+        *pMsgId = 1;
     }
 
-    uint16_t result = *msg_id_p;
+    uint16_t result = *pMsgId;
     uint16_t xor_key = ((deviceId & 0xff) ^ ((deviceId >> 16) & 0xff)) | (deviceId & 0xff00);
     for (int i = 0; i < 32; i++)
     {
@@ -323,12 +323,12 @@ uint16_t x3d_enc_msg_id(uint16_t *msg_id_p, uint32_t deviceId)
     return result;
 }
 
-uint16_t x3d_dec_msg_id(uint16_t enc_msg_id, uint32_t deviceId)
+uint16_t x3d_dec_msg_id(uint16_t encMsgId, uint32_t deviceId)
 {
     uint16_t xor_key = ((deviceId & 0xff) ^ ((deviceId >> 16) & 0xff)) | (deviceId & 0xff00);
     for (int i = 31; i >= 0; i--)
     {
-        enc_msg_id = apply_sbox(enc_msg_id ^ xor_key, i % 13);
+        encMsgId = apply_sbox(encMsgId ^ xor_key, i % 13);
     }
-    return enc_msg_id;
+    return encMsgId;
 }

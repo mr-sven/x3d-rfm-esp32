@@ -90,33 +90,6 @@
 #define NET_4                               4
 #define NET_5                               5
 
-// 0x16 0x11 Flags
-#define X3D_FLAG_DEFROST                    0x0200
-#define X3D_FLAG_TIMED                      0x0800
-#define X3D_FLAG_HEATER_ON                  0x1000
-#define X3D_FLAG_HEATER_STOPPED             0x2000
-#define X3D_FLAG_STATUS                     0x8000
-
-// 0x16 0x21 Flags
-#define X3D_FLAG_WINDOW_OPEN                0x0002
-#define X3D_FLAG_NO_TEMP_SENSOR             0x0100
-#define X3D_FLAG_BATTERY_LOW                0x1000
-
-#define X3D_REG_START_PAIR                  0x1401
-#define X3D_REG_ROOM_TEMP                   0x1511
-#define X3D_REG_OUTDOOR_TEMP                0x1521
-#define X3D_REG_SETPOINT_STATUS             0x1611
-#define X3D_REG_ERROR_STATUS                0x1621
-#define X3D_REG_ON_OFF                      0x1641
-#define X3D_REG_MODE_TIME                   0x1661
-#define X3D_REG_SETPOINT_DEFROST            0x1681
-#define X3D_REG_SETPOINT_NIGHT_DAY          0x1691
-#define X3D_REG_ON_TIME_LSB                 0x1910
-#define X3D_REG_ON_TIME_MSB                 0x1990
-
-#define X3D_REG_H(R)                        (((R) >> 8) & 0xff)
-#define X3D_REG_L(R)                        ((R) & 0xff)
-
 #define FLAG_TO_BITFIELD(F, M)              (((F) & (M)) == (M))
 
 typedef struct {
@@ -569,7 +542,7 @@ void outdoor_temp_task(void *arg)
     double temp = strtod(arg, NULL);
     set_status(MQTT_STATUS_TEMP);
     x3d_temp_data_t data = {
-        .outdoor = 0x01,
+        .outdoor = X3D_HEADER_EXT_TEMP_OUTDOOR,
         .temp = temp * 100.0
     };
 
