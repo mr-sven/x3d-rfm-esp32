@@ -27,14 +27,17 @@ Implementation is ongoing.
 - [x] Read Register
 - [ ] Write Register
 
-### WRITE Device Reset
+## Device Reset (PUB)
 
 Send a message to this topic, restarts the controller and it may update via OTA
 
 * Topic: `/device/esp32/<device-id>/reset`
 * Payload: whatever
 
-### READ Paired devices
+Status:
+* `reset` - device is in reset
+
+## Paired devices (SUB)
 
 These topics are retaining and contains the current data of the paired devices. The `<id>` can be from 0 to 15 and represents the device bit number.
 
@@ -65,14 +68,17 @@ On controller startup, the controller sends NULL to all unused device IDs to rem
 }
 ```
 
-### WRITE Outdoor temperature
+## Outdoor temperature (PUB)
 
 Publish outdoor temperature to all actors to that the thermostates can display it.
 
 * Topic: `/device/esp32/<device-id>/outdoorTemp`
 * Payload: temperature in °C with dot as floatingpoint separator, ex.: `-4.5`
 
-### WRITE Start Pairing
+Status:
+* `temp` - device is in temp sending
+
+## Start Pairing (PUB)
 
 This topic starts pairing mode.
 
@@ -88,7 +94,7 @@ Response is published in status topic:
 * `pairing failed` - pairing has failed or no device to pair found
 * `pairing success` - new device paired
 
-### WRITE Unpairing
+## Unpairing (PUB)
 
 This topic starts pairing mode.
 
@@ -99,7 +105,10 @@ This topic starts pairing mode.
 
 If the number not matches the network bitmask, the request is ignored.
 
-### WRITE Device status
+Status:
+* `unpairing` - device is in unpairing process
+
+## Device status (PUB)
 
 This topic requests the status of the current devices.
 
@@ -108,7 +117,10 @@ This topic requests the status of the current devices.
 
 Response is published to the corresponding device status topics.
 
-### WRITE Device status short
+Status:
+* `status` - device is in status reading process
+
+## Device status short (PUB)
 
 This topic requests the status of the current devices. Reads only minimal no. registers from device to reduce RF traffic.
 
@@ -117,7 +129,10 @@ This topic requests the status of the current devices. Reads only minimal no. re
 
 Response is published to the corresponding device status topics.
 
-### WRITE Read Register
+Status:
+* `status` - device is in status reading process
+
+## Read Register (PUB)
 
 This topic starts pairing mode.
 
