@@ -94,6 +94,7 @@
 #define X3D_FLAG_BATTERY_LOW                0x1000
 
 // register addresses
+#define X3D_REG_ATT_POWER                   0x1151
 #define X3D_REG_START_PAIR                  0x1401
 #define X3D_REG_ROOM_TEMP                   0x1511
 #define X3D_REG_OUTDOOR_TEMP                0x1521
