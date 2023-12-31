@@ -18,9 +18,11 @@
 #include "x3d.h"
 #include "x3d_handler.h"
 
-#define X3D_DEFAULT_MSG_READ_RETRY          2
-#define X3D_DEFAULT_MSG_RETRY               4
-#define X3D_TEMP_MSG_RETRY                  1
+#define X3D_RETRY_COUNT_DEFAULT             3
+#define X3D_RETRY_COUNT_PAIR                5
+#define X3D_RETRY_COUNT_TEMP                2
+#define X3D_PER_DEVICE_WAIT_SLOTS_DEFAULT   3
+#define X3D_PER_DEVICE_WAIT_SLOTS_PAIR      4
 
 uint32_t x3d_device_id;
 uint8_t x3d_buffer[64];
@@ -135,7 +137,7 @@ int x3d_pairing_proc(x3d_pairing_data_t *data)
         target_slot |= 0x10;
     }
 
-    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, data->transfer);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_PAIR - 1, data->transfer);
     x3d_set_pairing_data(x3d_buffer, payload_index, target_slot, 0, X3D_PAIR_STATE_OPEN);
 
     // transfer buffer
@@ -148,14 +150,14 @@ int x3d_pairing_proc(x3d_pairing_data_t *data)
     if (pin != 0)
     {
         payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_PAIRING, 0, 0x85, ext_header, sizeof(ext_header));
-        x3d_set_message_retrans(x3d_buffer, payload_index, 4, data->transfer);
+        x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_PAIR - 1, data->transfer);
         x3d_set_pairing_data(x3d_buffer, payload_index, target_slot, pin, X3D_PAIR_STATE_PINNED);
 
         // transfer buffer
         x3d_transmit();
 
         // wait to process responses
-        vTaskDelay(pdMS_TO_TICKS((no_of_devices(data->transfer) + 1) * 4 * X3D_MSG_DELAY_MS));
+        vTaskDelay(pdMS_TO_TICKS((no_of_devices(data->transfer) + 1) * X3D_PER_DEVICE_WAIT_SLOTS_PAIR * X3D_MSG_DELAY_MS));
 
         if ((x3d_get_retrans_ack(x3d_buffer, payload_index) & ack_mask) == ack_mask)
         {
@@ -175,7 +177,7 @@ void x3d_unpairing_proc(x3d_unpairing_data_t *data)
 {
     uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_NONE};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
-    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, data->transfer);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_DEFAULT - 1, data->transfer);
     uint16_t target_mask = 1 << (data->target & 0x0f);
 
     x3d_set_unpair_device(x3d_buffer, payload_index, target_mask);
@@ -184,7 +186,7 @@ void x3d_unpairing_proc(x3d_unpairing_data_t *data)
     x3d_transmit();
 
     // wait to process responses
-    vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_DEFAULT_MSG_RETRY * X3D_MSG_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_PER_DEVICE_WAIT_SLOTS_DEFAULT * X3D_MSG_DELAY_MS));
 
     // remove device from transfer mask
     data->transfer &= ~(target_mask);
@@ -198,14 +200,14 @@ x3d_standard_msg_payload_t * x3d_reading_proc(x3d_read_data_t *data)
 {
     uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_NONE};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
-    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_READ_RETRY, data->transfer);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_DEFAULT - 1, data->transfer);
     x3d_set_register_read(x3d_buffer, payload_index, data->target, data->register_high, data->register_low);
 
     // transfer buffer
     x3d_transmit();
 
     // wait to process responses
-    vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_DEFAULT_MSG_RETRY * X3D_MSG_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_PER_DEVICE_WAIT_SLOTS_DEFAULT * X3D_MSG_DELAY_MS));
 
     return (x3d_standard_msg_payload_t *)&x3d_buffer[payload_index + 1];
 }
@@ -218,14 +220,14 @@ x3d_standard_msg_payload_t * x3d_writing_proc(x3d_write_data_t *data)
 {
     uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_NONE};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
-    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_DEFAULT_MSG_RETRY, data->transfer);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_DEFAULT - 1, data->transfer);
     x3d_set_register_write(x3d_buffer, payload_index, data->target, data->register_high, data->register_low, data->values);
 
     // transfer buffer
     x3d_transmit();
 
     // wait to process responses
-    vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_DEFAULT_MSG_RETRY * X3D_MSG_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_PER_DEVICE_WAIT_SLOTS_DEFAULT * X3D_MSG_DELAY_MS));
 
     return (x3d_standard_msg_payload_t *)&x3d_buffer[payload_index + 1];
 }
@@ -238,12 +240,12 @@ void x3d_temp_proc(x3d_temp_data_t *data)
 {
     uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_TEMP, data->outdoor, data->temp & 0xff, (data->temp >> 8) & 0xff};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
-    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_TEMP_MSG_RETRY, data->transfer);
+    x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_TEMP - 1, data->transfer);
     x3d_set_ping_device(x3d_buffer, payload_index, data->target);
 
     // transfer buffer
     x3d_transmit();
 
     // wait to process responses
-    vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_DEFAULT_MSG_RETRY * X3D_MSG_DELAY_MS));
+    vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_PER_DEVICE_WAIT_SLOTS_DEFAULT * X3D_MSG_DELAY_MS));
 }
