@@ -200,7 +200,7 @@ Example: read register 16 41 with one, two, three and four devices attached:
 At next the register address is followed. It is not clear if there is any grouping, there are always two bytes and maybe some bitflags.
 
 Current known / seen registers:
-* `0x11 0x51` - Unknown
+* `0x11 0x51` - (r/w) Power consumed by device behind actor (Heater, ...)
 * `0x14 0x01` - (w) Start pairing mode
 * `0x15 0x11` - (r) Current Room Temp
 * `0x15 0x21` - (r) Current External Temp
@@ -333,6 +333,18 @@ TX: All, Write: All
 #6: 30 0300 0300 0300 19 rrrr 0300 xxxx yyyy
 #7: 31 0300 0300 0300 19 rrrr 0300 xxxx yyyy
 ```
+
+### Register 11 51
+
+Power consumed by the device attached to the actor, for example a heater.
+
+The first byte contains the power devided by 50 W
+
+* 0x1a = 26 * 50 = 1300 W
+* 0x10 = 16 * 50 =  800 W
+* 0x0e = 14 * 50 =  700 W
+
+The second byte is unknown, possible a 16 bit value, but I think a value of 12.5 kW would burn the actor.
 
 ### Register 14 01
 
