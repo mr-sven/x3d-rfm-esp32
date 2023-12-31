@@ -45,6 +45,12 @@ int mqtt_subscribe(const char *topic, int qos)
     return esp_mqtt_client_subscribe_single(client, topic, qos);
 }
 
+int mqtt_subscribe_multi(const esp_mqtt_topic_t *topic_list, int size)
+{
+    ESP_LOGI(TAG, "Subscribe multi");
+    return esp_mqtt_client_subscribe_multiple(client, topic_list, size);
+}
+
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "", base, event_id);

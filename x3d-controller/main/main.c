@@ -10,6 +10,7 @@
  */
 
 #include <string.h>
+#include <stdarg.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -191,6 +192,39 @@ int mqtt_subscribe_subtopic(const char *subtopic, int qos)
 }
 
 /**
+ * @brief subscribe to a list of topics
+ * 
+ * @param n number of arguments
+ * @param ... string arguments of topics
+ * @return int 
+ */
+int mqtt_subscribe_subtopic_list(int n, ...)
+{
+    va_list args;
+    va_start(args, n);
+    esp_mqtt_topic_t *topic_list = calloc(n, sizeof(esp_mqtt_topic_t));
+    int prefix_len = strlen(mqtt_topic_prefix);
+    for (int i = 0; i < n; i++)
+    {
+        char *subtopic = va_arg(args, char*);
+        topic_list[i].filter = calloc(1, prefix_len + strlen(subtopic) + 1);
+        strcpy((char*)topic_list[i].filter, mqtt_topic_prefix);
+        strcat((char*)topic_list[i].filter, subtopic);
+        topic_list[i].qos = 0;
+    }
+    va_end(args);
+
+    int res = mqtt_subscribe_multi(topic_list, n);
+    for (int i = 0; i < n; i++)
+    {
+        free((char*)topic_list[i].filter);
+    }
+    free(topic_list);
+    return res;
+}
+
+
+/**
  * @brief Set the status of the controller
  *
  * @param status
@@ -303,17 +337,16 @@ static void __attribute__((noreturn)) end_task(void *arg)
 
 void pairing_task(void *arg)
 {
-    char * pEnd;
-    uint8_t network = strtoul(arg, &pEnd, 10);
-    char *pCheckEnd = pEnd;
-    uint8_t target = strtoul(pEnd, &pCheckEnd, 10);
+    char *pArg = NULL, *pEnd = NULL;
+    uint8_t network = strtoul(arg, &pArg, 10);
+    uint8_t target = strtoul(pArg, &pEnd, 10);
     if (!valid_network(network))
     {
         end_task(arg);
     }
     
     // check if only one parameters given then own pairing process is started
-    if (pCheckEnd == pEnd)
+    if (pEnd == pArg)
     {
         x3d_pairing_data_t data = {
             .network = network,
@@ -409,15 +442,14 @@ void unpairing_task(void *arg)
 
 void reading_task(void *arg)
 {
-    char *pEnd;
-    uint8_t network = strtoul(arg, &pEnd, 10);
-    uint16_t target = strtoul(pEnd, &pEnd, 10);
-    uint8_t register_high = strtoul(pEnd, &pEnd, 10);
-    char *pCheckEnd = pEnd;
-    uint8_t register_low = strtoul(pEnd, &pCheckEnd, 10);
+    char *pArg = NULL, *pEnd = NULL;
+    uint8_t network = strtoul(arg, &pArg, 10);
+    uint16_t target = strtoul(pArg, &pArg, 10);
+    uint8_t register_high = strtoul(pArg, &pArg, 10);
+    uint8_t register_low = strtoul(pArg, &pEnd, 10);
 
     // check if only three parameters given
-    if (pCheckEnd == pEnd)
+    if (pEnd == pArg)
     {
         register_low = register_high;
         register_high = target;
@@ -751,12 +783,15 @@ void mqtt_data(char *topic, char *data)
 
 void mqtt_connected(void)
 {
-    mqtt_subscribe_subtopic(MQTT_TOPIC_CMD, 0);
-    mqtt_subscribe_subtopic(MQTT_TOPIC_OUTDOOR_TEMP, 0);
-    mqtt_subscribe_subtopic(MQTT_TOPIC_DEVICE_STATUS, 0);
-    mqtt_subscribe_subtopic(MQTT_TOPIC_RESET, 0);
-    mqtt_subscribe_subtopic(MQTT_TOPIC_PAIR, 0);
-    mqtt_subscribe_subtopic(MQTT_TOPIC_UNPAIR, 0);
+    mqtt_subscribe_subtopic_list(7,
+        MQTT_TOPIC_CMD,
+        MQTT_TOPIC_OUTDOOR_TEMP,
+        MQTT_TOPIC_DEVICE_STATUS,
+        MQTT_TOPIC_RESET,
+        MQTT_TOPIC_PAIR,
+        MQTT_TOPIC_UNPAIR,
+        MQTT_TOPIC_READ
+    );
     set_status(MQTT_STATUS_START);
     set_status(MQTT_STATUS_IDLE);
     init_mqtt_topic_devices();
