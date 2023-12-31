@@ -23,6 +23,7 @@ Implementation is ongoing.
 - [x] Start Pairing
 - [x] Unpairing
 - [x] Device status
+- [x] Device status short
 - [x] Read Register
 - [ ] Write Register
 
@@ -46,6 +47,10 @@ On controller startup, the controller sends NULL to all unused device IDs to rem
 {
     "roomTemp": 0,
     "setPoint": 0,
+    "setPointDay": 0,
+    "setPointNight": 0,
+    "setPointDefrost": 0,
+    "power": 0,
     "enabled": false,
     "onAir": false,
     "flags": [
@@ -99,6 +104,15 @@ If the number not matches the network bitmask, the request is ignored.
 This topic requests the status of the current devices.
 
 * Topic: `/device/esp32/<device-id>/deviceStatus`
+* Payload: 4 or 5, the network number, everything else is ignored
+
+Response is published to the corresponding device status topics.
+
+### WRITE Device status short
+
+This topic requests the status of the current devices. Reads only minimal no. registers from device to reduce RF traffic.
+
+* Topic: `/device/esp32/<device-id>/deviceStatusShort`
 * Payload: 4 or 5, the network number, everything else is ignored
 
 Response is published to the corresponding device status topics.

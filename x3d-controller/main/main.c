@@ -37,6 +37,7 @@
 #define MQTT_TOPIC_RESULT                   "/result"
 #define MQTT_TOPIC_OUTDOOR_TEMP             "/outdoorTemp"
 #define MQTT_TOPIC_DEVICE_STATUS            "/deviceStatus"
+#define MQTT_TOPIC_DEVICE_STATUS_SHORT      "/deviceStatusShort"
 #define MQTT_TOPIC_RESET                    "/reset"
 #define MQTT_TOPIC_PAIR                     "/pair"
 #define MQTT_TOPIC_UNPAIR                   "/unpair"
@@ -76,6 +77,7 @@
 #define MQTT_JSON_SET_POINT_NIGHT           "setPointNight"
 #define MQTT_JSON_SET_POINT_DEFROST         "setPointDefrost"
 #define MQTT_JSON_FLAGS                     "flags"
+#define MQTT_JSON_POWER                     "power"
 
 #define MQTT_JSON_DEFROST                   "defrost"
 #define MQTT_JSON_TIMED                     "timed"
@@ -95,6 +97,7 @@
 
 typedef struct {
     uint16_t room_temp;
+    uint8_t power;
     uint8_t set_point;
     uint8_t set_point_day;
     uint8_t set_point_night;
@@ -246,6 +249,7 @@ void publish_device(x3d_device_t *device, uint8_t network, int id, int update)
     {
         cJSON *root = cJSON_CreateObject();
         cJSON_AddNumberToObject(root, MQTT_JSON_ROOM_TEMP, (double)device->room_temp / 100.0);
+        cJSON_AddNumberToObject(root, MQTT_JSON_POWER, (uint16_t)device->power * 50);
         cJSON_AddNumberToObject(root, MQTT_JSON_SET_POINT, (double)device->set_point * 0.5);
         cJSON_AddNumberToObject(root, MQTT_JSON_SET_POINT_DAY, (double)device->set_point_day * 0.5);
         cJSON_AddNumberToObject(root, MQTT_JSON_SET_POINT_NIGHT, (double)device->set_point_night * 0.5);
@@ -641,6 +645,9 @@ void read_reg_to_devices(x3d_device_t **devices, x3d_read_data_t *data, uint16_t
             devices[i]->on_air = 1;
             switch (reg)
             {
+                case X3D_REG_ATT_POWER:
+                    devices[i]->power = payload->data[i] & 0xff;
+                    break;
                 case X3D_REG_ROOM_TEMP:
                     devices[i]->room_temp = payload->data[i];
                     break;
@@ -678,22 +685,6 @@ void read_reg_to_devices(x3d_device_t **devices, x3d_read_data_t *data, uint16_t
     }
 }
 
-void load_register(x3d_device_t **devices, uint8_t network, uint16_t device_mask)
-{
-    x3d_read_data_t data = {
-        .network = network,
-        .transfer = device_mask,
-        .target = device_mask
-    };
-
-    read_reg_to_devices(devices, &data, X3D_REG_ROOM_TEMP);
-    read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_STATUS);
-    read_reg_to_devices(devices, &data, X3D_REG_ERROR_STATUS);
-    read_reg_to_devices(devices, &data, X3D_REG_ON_OFF);
-    read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_DEFROST);
-    read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_NIGHT_DAY);
-}
-
 void device_status_task(void *arg)
 {
     uint8_t network = strtoul(arg, NULL, 10);
@@ -704,10 +695,56 @@ void device_status_task(void *arg)
 
     set_status(MQTT_STATUS_STATUS);
     uint16_t device_mask = get_network_mask(network);
+    x3d_read_data_t data = {
+        .network = network,
+        .transfer = device_mask,
+        .target = device_mask
+    };
+
     if (no_of_devices(device_mask))
     {
         x3d_device_t **devices = get_devices_list(network);
-        load_register(devices, network, device_mask);
+        read_reg_to_devices(devices, &data, X3D_REG_ROOM_TEMP);
+        read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_STATUS);
+        read_reg_to_devices(devices, &data, X3D_REG_ERROR_STATUS);
+        read_reg_to_devices(devices, &data, X3D_REG_ON_OFF);
+        read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_DEFROST);
+        read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_NIGHT_DAY);
+        read_reg_to_devices(devices, &data, X3D_REG_ATT_POWER);
+        
+        for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
+        {
+            publish_device(devices[i], network, i, 1);
+        }
+    }
+
+    end_task(arg);
+}
+
+void device_status_short_task(void *arg)
+{
+    uint8_t network = strtoul(arg, NULL, 10);
+    if (!valid_network(network))
+    {
+        end_task(arg);
+    }
+
+    set_status(MQTT_STATUS_STATUS);
+    uint16_t device_mask = get_network_mask(network);
+    x3d_read_data_t data = {
+        .network = network,
+        .transfer = device_mask,
+        .target = device_mask
+    };
+
+    if (no_of_devices(device_mask))
+    {
+        x3d_device_t **devices = get_devices_list(network);
+        read_reg_to_devices(devices, &data, X3D_REG_ROOM_TEMP);
+        read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_STATUS);
+        read_reg_to_devices(devices, &data, X3D_REG_ERROR_STATUS);
+        read_reg_to_devices(devices, &data, X3D_REG_ON_OFF);
+        
         for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
         {
             publish_device(devices[i], network, i, 1);
@@ -773,6 +810,10 @@ void mqtt_data(char *topic, char *data)
     {
         execute_task(device_status_task, "device_status_task", 4096, strdup(data));
     }
+    else if (strcmp(sub_topic, MQTT_TOPIC_DEVICE_STATUS_SHORT) == 0)
+    {
+        execute_task(device_status_short_task, "device_status_short_task", 4096, strdup(data));
+    }
     else if (strcmp(sub_topic, MQTT_TOPIC_RESET) == 0)
     {
         set_status(MQTT_STATUS_RESET);
@@ -783,10 +824,11 @@ void mqtt_data(char *topic, char *data)
 
 void mqtt_connected(void)
 {
-    mqtt_subscribe_subtopic_list(7,
+    mqtt_subscribe_subtopic_list(8,
         MQTT_TOPIC_CMD,
         MQTT_TOPIC_OUTDOOR_TEMP,
         MQTT_TOPIC_DEVICE_STATUS,
+        MQTT_TOPIC_DEVICE_STATUS_SHORT,
         MQTT_TOPIC_RESET,
         MQTT_TOPIC_PAIR,
         MQTT_TOPIC_UNPAIR,
