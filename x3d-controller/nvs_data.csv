@@ -1,4 +1,4 @@
 key,type,encoding,value
 ctx,namespace,,
-net_4_mask,data,u16,3
+net_4_mask,data,u16,7
 net_5_mask,data,u16,0

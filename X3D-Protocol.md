@@ -336,7 +336,8 @@ TX: All, Write: All
 
 ### Register 11 51
 
-Power consumed by the device attached to the actor, for example a heater.
+Power consumed by the device attached to the actor, for example a heater. This value is configured by the thermostat and is used
+to calculate the overall consumption with register 19 10/90.
 
 The first byte contains the power devided by 50 W
 
