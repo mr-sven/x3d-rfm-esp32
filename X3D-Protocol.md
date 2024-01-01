@@ -212,7 +212,7 @@ Current known / seen registers:
 * `0x16 0x61` - (r/w) Party on time in minutes / Holiday time in minutes starting from current time. (Days - 1) * 1440 + Current Time in Minutes
 * `0x16 0x81` - (r/w) Freeze Temp
 * `0x16 0x91` - (r/w) Night Temp and Day Temp
-* `0x18 0x01` - (w) Unknown
+* `0x18 0x01` - (w) Actor functions
 * `0x19 0x10` - (r) On time lsb in seconds
 * `0x19 0x90` - (r) On time msb in seconds
 * `0x1a 0x04` - Unknown
@@ -425,6 +425,24 @@ Store for Day & Night Temp.
 The first byte contains the night temperature: 0x26 = 19 °C.
 
 The second byte contains the day temperature: 0x2f = 23.5 °C.
+
+### Register 18 01
+
+This register can only be written and configures some functions on the actor.
+
+The first byte is some kind of enum flags. The 6 MSBs are currently unknown.
+
+* 0x01 = 0b00000001 = Window detector disabled
+* 0x02 = 0b00000010 = Presence detector disabled
+
+Current seen values:
+* 0x0f - After Pair
+* 0x27 - After power set
+* 0x1f - After default thermostat config
+* 0x1e - After enable window detector
+* 0x1d - After enable presence detector
+
+The second byte contains a temperature it aligns with the day temperature: 0x2f = 23.5 °C.
 
 ### Register 19 10/90
 
