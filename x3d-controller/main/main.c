@@ -196,10 +196,10 @@ int mqtt_subscribe_subtopic(const char *subtopic, int qos)
 
 /**
  * @brief subscribe to a list of topics
- * 
+ *
  * @param n number of arguments
  * @param ... string arguments of topics
- * @return int 
+ * @return int
  */
 int mqtt_subscribe_subtopic_list(int n, ...)
 {
@@ -237,11 +237,19 @@ void set_status(char *status)
     mqtt_publish_subtopic(MQTT_TOPIC_STATUS, status, strlen(status), 0, 1);
 }
 
-void publish_device(x3d_device_t *device, uint8_t network, int id, int update)
+/**
+ * @brief Publishes the current device status to its topics.
+ *
+ * @param device pointer to device struct, if null nothing will published
+ * @param network device network
+ * @param id device id
+ * @param force if device is null and force true, a null gets published to the topic to remove retaining data
+ */
+void publish_device(x3d_device_t *device, uint8_t network, int id, bool force)
 {
     char topic[128];
     sprintf(topic, "%s/%d/%d", mqtt_topic_prefix, network, id);
-    if (device == NULL && update == 0)
+    if (device == NULL && force)
     {
         mqtt_publish(topic, NULL, 0, 0, 1);
     }
@@ -292,12 +300,16 @@ void publish_device(x3d_device_t *device, uint8_t network, int id, int update)
     }
 }
 
+/**
+ * @brief Initial device topic publish.
+ *
+ */
 void init_mqtt_topic_devices(void)
 {
     for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
     {
-        publish_device(net_4_devices[i], NET_4, i, 0);
-        publish_device(net_5_devices[i], NET_5, i, 0);
+        publish_device(net_4_devices[i], NET_4, i, true);
+        publish_device(net_5_devices[i], NET_5, i, true);
     }
 }
 
@@ -327,6 +339,12 @@ void update_nvs_device_mask(uint8_t network, uint16_t mask)
     }
 }
 
+/**
+ * @brief Task end funktion.
+ * Set status to idle, optional frees arg pointer and deletes task.
+ *
+ * @param arg optional pointer to data to free
+ */
 static void __attribute__((noreturn)) end_task(void *arg)
 {
     if (arg != NULL)
@@ -348,7 +366,7 @@ void pairing_task(void *arg)
     {
         end_task(arg);
     }
-    
+
     // check if only one parameters given then own pairing process is started
     if (pEnd == pArg)
     {
@@ -378,7 +396,7 @@ void pairing_task(void *arg)
             {
                 devices[target_device_no] = (x3d_device_t *)calloc(1, sizeof(x3d_device_t));
                 devices[target_device_no]->on_air = 1;
-                publish_device(devices[target_device_no], data.network, target_device_no, 0);
+                publish_device(devices[target_device_no], data.network, target_device_no, true);
             }
         }
     }
@@ -402,7 +420,7 @@ void pairing_task(void *arg)
 
         set_status(MQTT_STATUS_PAIRING);
         x3d_writing_proc(&data);
-    }    
+    }
 
     end_task(arg);
 }
@@ -438,7 +456,7 @@ void unpairing_task(void *arg)
     {
         free(devices[data.target]);
         devices[data.target] = NULL;
-        publish_device(NULL, data.network, data.target, 0);
+        publish_device(NULL, data.network, data.target, true);
     }
 
     end_task(arg);
@@ -711,10 +729,10 @@ void device_status_task(void *arg)
         read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_DEFROST);
         read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_NIGHT_DAY);
         read_reg_to_devices(devices, &data, X3D_REG_ATT_POWER);
-        
+
         for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
         {
-            publish_device(devices[i], network, i, 1);
+            publish_device(devices[i], network, i, false);
         }
     }
 
@@ -744,10 +762,10 @@ void device_status_short_task(void *arg)
         read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_STATUS);
         read_reg_to_devices(devices, &data, X3D_REG_ERROR_STATUS);
         read_reg_to_devices(devices, &data, X3D_REG_ON_OFF);
-        
+
         for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
         {
-            publish_device(devices[i], network, i, 1);
+            publish_device(devices[i], network, i, false);
         }
     }
 
@@ -768,7 +786,6 @@ void execute_task(TaskFunction_t pxTaskCode, const char * const pcName, const co
 /***********************************************
  * MQTT message handler
  */
-
 void mqtt_data(char *topic, char *data)
 {
     if (strncmp(mqtt_topic_prefix, topic, MQTT_TOPIC_PREFIX_LEN) != 0)
