@@ -24,15 +24,15 @@
 #include "ota.h"
 #include "led.h"
 
-#define HASH_LEN            32 /* SHA-256 digest length */
-#define BUFFSIZE            1024
-#define OTA_DONE_BIT        BIT0
+#define HASH_LEN     32 /* SHA-256 digest length */
+#define BUFFSIZE     1024
+#define OTA_DONE_BIT BIT0
 
 static EventGroupHandle_t ota_event_group;
 
 static const char *TAG = "OTA";
 
-static void print_sha256 (const uint8_t *image_hash, const char *label)
+static void print_sha256(const uint8_t *image_hash, const char *label)
 {
     char hash_print[HASH_LEN * 2 + 1];
     hash_print[HASH_LEN * 2] = 0;
@@ -47,20 +47,20 @@ void ota_precheck(void)
 {
     ESP_LOGI(TAG, "precheck");
 
-    uint8_t sha_256[HASH_LEN] = { 0 };
+    uint8_t sha_256[HASH_LEN] = {0};
     esp_partition_t partition;
 
     // get sha256 digest for the partition table
-    partition.address   = ESP_PARTITION_TABLE_OFFSET;
-    partition.size      = ESP_PARTITION_TABLE_MAX_LEN;
-    partition.type      = ESP_PARTITION_TYPE_DATA;
+    partition.address = ESP_PARTITION_TABLE_OFFSET;
+    partition.size    = ESP_PARTITION_TABLE_MAX_LEN;
+    partition.type    = ESP_PARTITION_TYPE_DATA;
     esp_partition_get_sha256(&partition, sha_256);
     print_sha256(sha_256, "SHA-256 for the partition table: ");
 
     // get sha256 digest for bootloader
-    partition.address   = ESP_BOOTLOADER_OFFSET;
-    partition.size      = ESP_PARTITION_TABLE_OFFSET;
-    partition.type      = ESP_PARTITION_TYPE_APP;
+    partition.address = ESP_BOOTLOADER_OFFSET;
+    partition.size    = ESP_PARTITION_TABLE_OFFSET;
+    partition.type    = ESP_PARTITION_TYPE_APP;
     esp_partition_get_sha256(&partition, sha_256);
     print_sha256(sha_256, "SHA-256 for bootloader: ");
 
@@ -89,31 +89,32 @@ static void __attribute__((noreturn)) end_task(esp_http_client_handle_t client)
 
     xEventGroupSetBits(ota_event_group, OTA_DONE_BIT);
     vTaskDelete(NULL);
-    while (1); // should not be reached
+    while (1)
+        ; // should not be reached
 }
 
 void ota_update_task(void *arg)
 {
     esp_err_t err;
-    esp_ota_handle_t update_handle = 0;
+    esp_ota_handle_t update_handle          = 0;
     const esp_partition_t *update_partition = NULL;
-    char ota_write_data[BUFFSIZE + 1] = { 0 };
+    char ota_write_data[BUFFSIZE + 1]       = {0};
 
     ESP_LOGI(TAG, "execute");
 
     const esp_partition_t *configured = esp_ota_get_boot_partition();
-    const esp_partition_t *running = esp_ota_get_running_partition();
+    const esp_partition_t *running    = esp_ota_get_running_partition();
     if (configured != running)
     {
-        ESP_LOGW(TAG, "Configured OTA boot partition at offset 0x%08"PRIx32", but running from offset 0x%08"PRIx32, configured->address, running->address);
+        ESP_LOGW(TAG, "Configured OTA boot partition at offset 0x%08" PRIx32 ", but running from offset 0x%08" PRIx32, configured->address, running->address);
         ESP_LOGW(TAG, "(This can happen if either the OTA boot data or preferred boot image become corrupted somehow.)");
     }
-    ESP_LOGI(TAG, "Running partition type %d subtype %d (offset 0x%08"PRIx32")", running->type, running->subtype, running->address);
+    ESP_LOGI(TAG, "Running partition type %d subtype %d (offset 0x%08" PRIx32 ")", running->type, running->subtype, running->address);
 
     esp_http_client_config_t config = {
-        .url = CONFIG_X3D_FIRMWARE_UPG_URL,
-        .timeout_ms = CONFIG_X3D_OTA_RECV_TIMEOUT,
-        .keep_alive_enable = true,
+            .url               = CONFIG_X3D_FIRMWARE_UPG_URL,
+            .timeout_ms        = CONFIG_X3D_OTA_RECV_TIMEOUT,
+            .keep_alive_enable = true,
     };
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
@@ -160,7 +161,7 @@ void ota_update_task(void *arg)
                         ESP_LOGI(TAG, "Running firmware version: %s", running_app_info.version);
                     }
 
-                    const esp_partition_t* last_invalid_app = esp_ota_get_last_invalid_partition();
+                    const esp_partition_t *last_invalid_app = esp_ota_get_last_invalid_partition();
                     // check current version with last invalid partition
                     if (last_invalid_app != NULL)
                     {
@@ -193,7 +194,7 @@ void ota_update_task(void *arg)
                         ESP_LOGE(TAG, "Error getting update partition");
                         end_task(client);
                     }
-                    ESP_LOGI(TAG, "Writing to partition subtype %d at offset 0x%"PRIx32, update_partition->subtype, update_partition->address);
+                    ESP_LOGI(TAG, "Writing to partition subtype %d at offset 0x%" PRIx32, update_partition->subtype, update_partition->address);
 
                     err = esp_ota_begin(update_partition, OTA_WITH_SEQUENTIAL_WRITES, &update_handle);
                     if (err != ESP_OK)

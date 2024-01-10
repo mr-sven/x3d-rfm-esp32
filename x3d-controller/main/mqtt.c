@@ -57,7 +57,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_event_handle_t event = event_data;
     char topic[128];
     char data[128];
-    switch ((esp_mqtt_event_id_t)event_id) {
+    switch ((esp_mqtt_event_id_t)event_id)
+    {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         mqtt_connected();
@@ -80,12 +81,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-        if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT) {
+        if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT)
+        {
             log_error_if_nonzero("reported from esp-tls", event->error_handle->esp_tls_last_esp_err);
             log_error_if_nonzero("reported from tls stack", event->error_handle->esp_tls_stack_err);
-            log_error_if_nonzero("captured as transport's socket errno",  event->error_handle->esp_transport_sock_errno);
+            log_error_if_nonzero("captured as transport's socket errno", event->error_handle->esp_transport_sock_errno);
             ESP_LOGI(TAG, "Last errno string (%s)", strerror(event->error_handle->esp_transport_sock_errno));
-
         }
         break;
     default:
@@ -94,17 +95,17 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     }
 }
 
-void mqtt_app_start(char * lwt_topic, char * lwt_data, int lwt_data_len, int qos, int retain)
+void mqtt_app_start(char *lwt_topic, char *lwt_data, int lwt_data_len, int qos, int retain)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.uri = CONFIG_X3D_BROKER_URL,
-        .session.last_will = {
-            .topic = lwt_topic,
-            .msg = lwt_data,
-            .msg_len = lwt_data_len,
-            .qos = qos,
-            .retain = retain
-        }
+            .broker.address.uri = CONFIG_X3D_BROKER_URL,
+            .session.last_will  = {
+                    .topic   = lwt_topic,
+                    .msg     = lwt_data,
+                    .msg_len = lwt_data_len,
+                    .qos     = qos,
+                    .retain  = retain,
+            },
     };
 
     client = esp_mqtt_client_init(&mqtt_cfg);

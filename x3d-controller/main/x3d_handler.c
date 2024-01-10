@@ -18,16 +18,17 @@
 #include "x3d.h"
 #include "x3d_handler.h"
 
-#define X3D_RETRY_COUNT_DEFAULT             3
-#define X3D_RETRY_COUNT_PAIR                5
-#define X3D_RETRY_COUNT_TEMP                2
-#define X3D_PER_DEVICE_WAIT_SLOTS_DEFAULT   3
-#define X3D_PER_DEVICE_WAIT_SLOTS_PAIR      4
+#define X3D_RETRY_COUNT_DEFAULT           3
+#define X3D_RETRY_COUNT_PAIR              5
+#define X3D_RETRY_COUNT_TEMP              2
+#define X3D_PER_DEVICE_WAIT_SLOTS_DEFAULT 3
+#define X3D_PER_DEVICE_WAIT_SLOTS_PAIR    4
 
 uint32_t x3d_device_id;
 uint8_t x3d_buffer[64];
-uint8_t x3d_msg_no = 1;
+uint8_t x3d_msg_no  = 1;
 uint16_t x3d_msg_id = 1;
+TickType_t x3d_last_rx_ts;
 
 static inline int no_of_devices(uint16_t mask)
 {
@@ -41,6 +42,9 @@ static inline int get_lowest_zerobit(uint16_t value)
 
 void x3d_processor(uint8_t *buffer)
 {
+    // store last rx time to check if air is free.
+    x3d_last_rx_ts = xTaskGetTickCount();
+
     //ESP_LOG_BUFFER_HEX_LEVEL(TAG, buffer, buffer[0], ESP_LOG_INFO);
     /*
      * It is possible to make all checks by hand:
@@ -105,11 +109,12 @@ uint8_t x3d_prepare_message(uint8_t network, x3d_msg_type_t msg_type, uint8_t fl
 
 void x3d_transmit(void)
 {
-    TickType_t xLastWakeTime = xTaskGetTickCount();
+    // TODO: check x3d_last_rx_ts for free air
+    TickType_t last_send_time = xTaskGetTickCount();
     do
     {
         x3d_set_crc(x3d_buffer);
-        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(X3D_MSG_DELAY_MS));
+        vTaskDelayUntil(&last_send_time, pdMS_TO_TICKS(X3D_MSG_DELAY_MS));
         rfm_transfer(x3d_buffer, x3d_buffer[0]);
     } while (x3d_dec_retry(x3d_buffer) > 0);
     rfm_receive();
@@ -121,12 +126,12 @@ void x3d_transmit(void)
 
 int x3d_pairing_proc(x3d_pairing_data_t *data)
 {
-    uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_NONE};
+    uint8_t ext_header[]  = {0x98, X3D_HEADER_EXT_NONE};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_PAIRING, 0, 0x85, ext_header, sizeof(ext_header));
 
     // get first free slot
     uint8_t target_device_no = get_lowest_zerobit(data->transfer);
-    uint8_t target_slot = target_device_no;
+    uint8_t target_slot      = target_device_no;
 
     // generate ack mask from slot number
     uint16_t ack_mask = 1 << target_slot;
@@ -175,7 +180,7 @@ int x3d_pairing_proc(x3d_pairing_data_t *data)
 
 void x3d_unpairing_proc(x3d_unpairing_data_t *data)
 {
-    uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_NONE};
+    uint8_t ext_header[]  = {0x98, X3D_HEADER_EXT_NONE};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
     x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_DEFAULT - 1, data->transfer);
     uint16_t target_mask = 1 << (data->target & 0x0f);
@@ -196,9 +201,9 @@ void x3d_unpairing_proc(x3d_unpairing_data_t *data)
  * X3D register read handler
  */
 
-x3d_standard_msg_payload_t * x3d_reading_proc(x3d_read_data_t *data)
+x3d_standard_msg_payload_t *x3d_reading_proc(x3d_read_data_t *data)
 {
-    uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_NONE};
+    uint8_t ext_header[]  = {0x98, X3D_HEADER_EXT_NONE};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
     x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_DEFAULT - 1, data->transfer);
     x3d_set_register_read(x3d_buffer, payload_index, data->target, data->register_high, data->register_low);
@@ -216,9 +221,9 @@ x3d_standard_msg_payload_t * x3d_reading_proc(x3d_read_data_t *data)
  * X3D register write handler
  */
 
-x3d_standard_msg_payload_t * x3d_writing_proc(x3d_write_data_t *data)
+x3d_standard_msg_payload_t *x3d_writing_proc(x3d_write_data_t *data)
 {
-    uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_NONE};
+    uint8_t ext_header[]  = {0x98, X3D_HEADER_EXT_NONE};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
     x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_DEFAULT - 1, data->transfer);
     x3d_set_register_write(x3d_buffer, payload_index, data->target, data->register_high, data->register_low, data->values);
@@ -238,7 +243,7 @@ x3d_standard_msg_payload_t * x3d_writing_proc(x3d_write_data_t *data)
 
 void x3d_temp_proc(x3d_temp_data_t *data)
 {
-    uint8_t ext_header[] = {0x98, X3D_HEADER_EXT_TEMP, data->outdoor, data->temp & 0xff, (data->temp >> 8) & 0xff};
+    uint8_t ext_header[]  = {0x98, X3D_HEADER_EXT_TEMP, data->outdoor, data->temp & 0xff, (data->temp >> 8) & 0xff};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
     x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_TEMP - 1, data->transfer);
     x3d_set_ping_device(x3d_buffer, payload_index, data->target);

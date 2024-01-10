@@ -15,49 +15,49 @@
 
 #include "led.h"
 
-#define LEDC_TIMER                         LEDC_TIMER_0
-#define LEDC_MODE                          LEDC_LOW_SPEED_MODE
-#define LEDC_DUTY_RES                      LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
-#define LEDC_FREQUENCY                     (4000) // Frequency in Hertz. Set frequency at 4 kHz
+#define LEDC_TIMER         LEDC_TIMER_0
+#define LEDC_MODE          LEDC_LOW_SPEED_MODE
+#define LEDC_DUTY_RES      LEDC_TIMER_13_BIT // Set duty resolution to 13 bits
+#define LEDC_FREQUENCY     (4000)            // Frequency in Hertz. Set frequency at 4 kHz
 
-#define LEDC_RED_OUTPUT                    GPIO_NUM_25
-#define LEDC_GREEN_OUTPUT                  GPIO_NUM_32
-#define LEDC_BLUE_OUTPUT                   GPIO_NUM_33
-#define LEDC_RED_CHANNEL                   LEDC_CHANNEL_0
-#define LEDC_GREEN_CHANNEL                 LEDC_CHANNEL_1
-#define LEDC_BLUE_CHANNEL                  LEDC_CHANNEL_2
+#define LEDC_RED_OUTPUT    GPIO_NUM_25
+#define LEDC_GREEN_OUTPUT  GPIO_NUM_32
+#define LEDC_BLUE_OUTPUT   GPIO_NUM_33
+#define LEDC_RED_CHANNEL   LEDC_CHANNEL_0
+#define LEDC_GREEN_CHANNEL LEDC_CHANNEL_1
+#define LEDC_BLUE_CHANNEL  LEDC_CHANNEL_2
 
-#define RGB_TO_DUTY(x)  (x * (1 << LEDC_DUTY_RES) / 255)
+#define RGB_TO_DUTY(x)     (x * (1 << LEDC_DUTY_RES) / 255)
 
 void led_init(void)
 {
     // Prepare and then apply the LEDC PWM timer configuration
     ledc_timer_config_t ledc_timer = {
-        .speed_mode       = LEDC_MODE,
-        .duty_resolution  = LEDC_DUTY_RES,
-        .timer_num        = LEDC_TIMER,
-        .freq_hz          = LEDC_FREQUENCY,  // Set output frequency at 4 kHz
-        .clk_cfg          = LEDC_AUTO_CLK
+            .speed_mode      = LEDC_MODE,
+            .duty_resolution = LEDC_DUTY_RES,
+            .timer_num       = LEDC_TIMER,
+            .freq_hz         = LEDC_FREQUENCY, // Set output frequency at 4 kHz
+            .clk_cfg         = LEDC_AUTO_CLK,
     };
     ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
 
     ledc_channel_config_t ledc_channel = {
-        .speed_mode     = LEDC_MODE,
-        .timer_sel      = LEDC_TIMER,
-        .intr_type      = LEDC_INTR_DISABLE,
-        .duty           = 0, // Set duty to 0%
-        .hpoint         = 0
+            .speed_mode = LEDC_MODE,
+            .timer_sel  = LEDC_TIMER,
+            .intr_type  = LEDC_INTR_DISABLE,
+            .duty       = 0, // Set duty to 0%
+            .hpoint     = 0,
     };
-    ledc_channel.channel        = LEDC_RED_CHANNEL;
-    ledc_channel.gpio_num       = LEDC_RED_OUTPUT;
+    ledc_channel.channel  = LEDC_RED_CHANNEL;
+    ledc_channel.gpio_num = LEDC_RED_OUTPUT;
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
-    ledc_channel.channel        = LEDC_GREEN_CHANNEL;
-    ledc_channel.gpio_num       = LEDC_GREEN_OUTPUT;
+    ledc_channel.channel  = LEDC_GREEN_CHANNEL;
+    ledc_channel.gpio_num = LEDC_GREEN_OUTPUT;
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
-    ledc_channel.channel        = LEDC_BLUE_CHANNEL;
-    ledc_channel.gpio_num       = LEDC_BLUE_OUTPUT;
+    ledc_channel.channel  = LEDC_BLUE_CHANNEL;
+    ledc_channel.gpio_num = LEDC_BLUE_OUTPUT;
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
     led_color(0xff, 0, 0);

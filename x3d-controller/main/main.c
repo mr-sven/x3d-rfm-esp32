@@ -32,85 +32,86 @@
 #include "ota.h"
 #include "x3d_handler.h"
 
-#define MQTT_TOPIC_PREFIX_LEN               20
-#define MQTT_TOPIC_STATUS                   "/status"
-#define MQTT_TOPIC_RESULT                   "/result"
-#define MQTT_TOPIC_OUTDOOR_TEMP             "/outdoorTemp"
-#define MQTT_TOPIC_DEVICE_STATUS            "/deviceStatus"
-#define MQTT_TOPIC_DEVICE_STATUS_SHORT      "/deviceStatusShort"
-#define MQTT_TOPIC_RESET                    "/reset"
-#define MQTT_TOPIC_PAIR                     "/pair"
-#define MQTT_TOPIC_UNPAIR                   "/unpair"
-#define MQTT_TOPIC_READ                     "/read"
+#define MQTT_TOPIC_PREFIX_LEN          20
+#define MQTT_TOPIC_STATUS              "/status"
+#define MQTT_TOPIC_RESULT              "/result"
+#define MQTT_TOPIC_OUTDOOR_TEMP        "/outdoorTemp"
+#define MQTT_TOPIC_DEVICE_STATUS       "/deviceStatus"
+#define MQTT_TOPIC_DEVICE_STATUS_SHORT "/deviceStatusShort"
+#define MQTT_TOPIC_RESET               "/reset"
+#define MQTT_TOPIC_PAIR                "/pair"
+#define MQTT_TOPIC_UNPAIR              "/unpair"
+#define MQTT_TOPIC_READ                "/read"
 
-#define MQTT_ACTION_READ                    "read"
+#define MQTT_ACTION_READ               "read"
 
-#define MQTT_TOPIC_CMD                      "/cmd"
-#define MQTT_CMD_WRITE                      "write"
+#define MQTT_TOPIC_CMD                 "/cmd"
+#define MQTT_CMD_WRITE                 "write"
 
-#define MQTT_STATUS_OFF                     "off"
-#define MQTT_STATUS_IDLE                    "idle"
-#define MQTT_STATUS_PAIRING                 "pairing"
-#define MQTT_STATUS_PAIRING_SUCCESS         "pairing success"
-#define MQTT_STATUS_PAIRING_FAILED          "pairing failed"
-#define MQTT_STATUS_READING                 "reading"
-#define MQTT_STATUS_WRITING                 "writing"
-#define MQTT_STATUS_UNPAIRING               "unpairing"
-#define MQTT_STATUS_TEMP                    "temp"
-#define MQTT_STATUS_STATUS                  "status"
-#define MQTT_STATUS_RESET                   "reset"
-#define MQTT_STATUS_START                   "start"
+#define MQTT_STATUS_OFF                "off"
+#define MQTT_STATUS_IDLE               "idle"
+#define MQTT_STATUS_PAIRING            "pairing"
+#define MQTT_STATUS_PAIRING_SUCCESS    "pairing success"
+#define MQTT_STATUS_PAIRING_FAILED     "pairing failed"
+#define MQTT_STATUS_READING            "reading"
+#define MQTT_STATUS_WRITING            "writing"
+#define MQTT_STATUS_UNPAIRING          "unpairing"
+#define MQTT_STATUS_TEMP               "temp"
+#define MQTT_STATUS_STATUS             "status"
+#define MQTT_STATUS_RESET              "reset"
+#define MQTT_STATUS_START              "start"
 
-#define MQTT_JSON_ACTION                    "action"
-#define MQTT_JSON_NETWORK                   "net"
-#define MQTT_JSON_ACK                       "ack"
-#define MQTT_JSON_REGISTER_HIGH             "regHigh"
-#define MQTT_JSON_REGISTER_LOW              "regLow"
-#define MQTT_JSON_VALUES                    "values"
-#define MQTT_JSON_TARGET                    "target"
+#define MQTT_JSON_ACTION               "action"
+#define MQTT_JSON_NETWORK              "net"
+#define MQTT_JSON_ACK                  "ack"
+#define MQTT_JSON_REGISTER_HIGH        "regHigh"
+#define MQTT_JSON_REGISTER_LOW         "regLow"
+#define MQTT_JSON_VALUES               "values"
+#define MQTT_JSON_TARGET               "target"
 
-#define MQTT_JSON_ROOM_TEMP                 "roomTemp"
-#define MQTT_JSON_SET_POINT                 "setPoint"
-#define MQTT_JSON_ENABLED                   "enabled"
-#define MQTT_JSON_ON_AIR                    "onAir"
-#define MQTT_JSON_SET_POINT_DAY             "setPointDay"
-#define MQTT_JSON_SET_POINT_NIGHT           "setPointNight"
-#define MQTT_JSON_SET_POINT_DEFROST         "setPointDefrost"
-#define MQTT_JSON_FLAGS                     "flags"
-#define MQTT_JSON_POWER                     "power"
+#define MQTT_JSON_ROOM_TEMP            "roomTemp"
+#define MQTT_JSON_SET_POINT            "setPoint"
+#define MQTT_JSON_ENABLED              "enabled"
+#define MQTT_JSON_ON_AIR               "onAir"
+#define MQTT_JSON_SET_POINT_DAY        "setPointDay"
+#define MQTT_JSON_SET_POINT_NIGHT      "setPointNight"
+#define MQTT_JSON_SET_POINT_DEFROST    "setPointDefrost"
+#define MQTT_JSON_FLAGS                "flags"
+#define MQTT_JSON_POWER                "power"
 
-#define MQTT_JSON_DEFROST                   "defrost"
-#define MQTT_JSON_TIMED                     "timed"
-#define MQTT_JSON_HEATER_ON                 "heaterOn"
-#define MQTT_JSON_HEATER_STOPPED            "heaterStopped"
-#define MQTT_JSON_WINDOW_OPEN               "windowOpen"
-#define MQTT_JSON_NO_TEMP_SENSOR            "noTempSensor"
-#define MQTT_JSON_BATTERY_LOW               "batteryLow"
+#define MQTT_JSON_DEFROST              "defrost"
+#define MQTT_JSON_TIMED                "timed"
+#define MQTT_JSON_HEATER_ON            "heaterOn"
+#define MQTT_JSON_HEATER_STOPPED       "heaterStopped"
+#define MQTT_JSON_WINDOW_OPEN          "windowOpen"
+#define MQTT_JSON_NO_TEMP_SENSOR       "noTempSensor"
+#define MQTT_JSON_BATTERY_LOW          "batteryLow"
 
-#define NVS_NET_4_DEVICE_MASK               "net_4_mask"
-#define NVS_NET_5_DEVICE_MASK               "net_5_mask"
+#define NVS_NET_4_DEVICE_MASK          "net_4_mask"
+#define NVS_NET_5_DEVICE_MASK          "net_5_mask"
 
-#define NET_4                               4
-#define NET_5                               5
+#define NET_4                          4
+#define NET_5                          5
 
-#define FLAG_TO_BITFIELD(F, M)              (((F) & (M)) == (M))
+#define FLAG_TO_BITFIELD(F, M)         (((F) & (M)) == (M))
 
-typedef struct {
+typedef struct
+{
     uint16_t room_temp;
     uint8_t power;
     uint8_t set_point;
     uint8_t set_point_day;
     uint8_t set_point_night;
     uint8_t set_point_defrost;
-    int on_air: 1;
-    int enabled: 1;
-    int defrost: 1;
-    int timed: 1;
-    int heater_on: 1;
-    int heater_stopped: 1;
-    int window_open: 1;
-    int no_temp_sensor: 1;
-    int battery_low: 1;
+    int on_air : 1;
+    int enabled : 1;
+    int defrost : 1;
+    int timed : 1;
+    int heater_on : 1;
+    int heater_stopped : 1;
+    int window_open : 1;
+    int no_temp_sensor : 1;
+    int battery_low : 1;
 } x3d_device_t;
 
 static const char *TAG = "MAIN";
@@ -122,8 +123,8 @@ TaskHandle_t x3d_processing_task_handle = NULL;
 static uint16_t net_4_device_mask = 0;
 static uint16_t net_5_device_mask = 0;
 
-static x3d_device_t *net_4_devices[X3D_MAX_NET_DEVICES] = { NULL };
-static x3d_device_t *net_5_devices[X3D_MAX_NET_DEVICES] = { NULL };
+static x3d_device_t *net_4_devices[X3D_MAX_NET_DEVICES] = {NULL};
+static x3d_device_t *net_5_devices[X3D_MAX_NET_DEVICES] = {NULL};
 
 static inline int valid_network(uint8_t network)
 {
@@ -139,12 +140,12 @@ static inline uint16_t get_network_mask(uint8_t network)
 {
     switch (network)
     {
-        case NET_4:
-            return net_4_device_mask;
-        case NET_5:
-            return net_5_device_mask;
-        default:
-            return 0;
+    case NET_4:
+        return net_4_device_mask;
+    case NET_5:
+        return net_5_device_mask;
+    default:
+        return 0;
     }
 }
 
@@ -152,12 +153,12 @@ static inline x3d_device_t **get_devices_list(uint8_t network)
 {
     switch (network)
     {
-        case NET_4:
-            return net_4_devices;
-        case NET_5:
-            return net_5_devices;
-        default:
-            return NULL;
+    case NET_4:
+        return net_4_devices;
+    case NET_5:
+        return net_5_devices;
+    default:
+        return NULL;
     }
 }
 
@@ -206,13 +207,13 @@ int mqtt_subscribe_subtopic_list(int n, ...)
     va_list args;
     va_start(args, n);
     esp_mqtt_topic_t *topic_list = calloc(n, sizeof(esp_mqtt_topic_t));
-    int prefix_len = strlen(mqtt_topic_prefix);
+    int prefix_len               = strlen(mqtt_topic_prefix);
     for (int i = 0; i < n; i++)
     {
-        char *subtopic = va_arg(args, char*);
+        char *subtopic       = va_arg(args, char *);
         topic_list[i].filter = calloc(1, prefix_len + strlen(subtopic) + 1);
-        strcpy((char*)topic_list[i].filter, mqtt_topic_prefix);
-        strcat((char*)topic_list[i].filter, subtopic);
+        strcpy((char *)topic_list[i].filter, mqtt_topic_prefix);
+        strcat((char *)topic_list[i].filter, subtopic);
         topic_list[i].qos = 0;
     }
     va_end(args);
@@ -220,12 +221,11 @@ int mqtt_subscribe_subtopic_list(int n, ...)
     int res = mqtt_subscribe_multi(topic_list, n);
     for (int i = 0; i < n; i++)
     {
-        free((char*)topic_list[i].filter);
+        free((char *)topic_list[i].filter);
     }
     free(topic_list);
     return res;
 }
-
 
 /**
  * @brief Set the status of the controller
@@ -267,31 +267,31 @@ void publish_device(x3d_device_t *device, uint8_t network, int id, bool force)
         cJSON *flags = cJSON_AddArrayToObject(root, MQTT_JSON_FLAGS);
         if (device->defrost)
         {
-	        cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_DEFROST));
+            cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_DEFROST));
         }
         if (device->timed)
         {
-	        cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_TIMED));
+            cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_TIMED));
         }
         if (device->heater_on)
         {
-	        cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_HEATER_ON));
+            cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_HEATER_ON));
         }
         if (device->heater_stopped)
         {
-	        cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_HEATER_STOPPED));
+            cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_HEATER_STOPPED));
         }
         if (device->window_open)
         {
-	        cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_WINDOW_OPEN));
+            cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_WINDOW_OPEN));
         }
         if (device->no_temp_sensor)
         {
-	        cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_NO_TEMP_SENSOR));
+            cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_NO_TEMP_SENSOR));
         }
         if (device->battery_low)
         {
-	        cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_BATTERY_LOW));
+            cJSON_AddItemToArray(flags, cJSON_CreateString(MQTT_JSON_BATTERY_LOW));
         }
         char *json_string = cJSON_PrintUnformatted(root);
         cJSON_Delete(root);
@@ -354,14 +354,15 @@ static void __attribute__((noreturn)) end_task(void *arg)
     set_status(MQTT_STATUS_IDLE);
     x3d_processing_task_handle = NULL;
     vTaskDelete(NULL);
-    while (1); // should not be reached
+    while (1)
+        ; // should not be reached
 }
 
 void pairing_task(void *arg)
 {
     char *pArg = NULL, *pEnd = NULL;
     uint8_t network = strtoul(arg, &pArg, 10);
-    uint8_t target = strtoul(pArg, &pEnd, 10);
+    uint8_t target  = strtoul(pArg, &pEnd, 10);
     if (!valid_network(network))
     {
         end_task(arg);
@@ -371,8 +372,8 @@ void pairing_task(void *arg)
     if (pEnd == pArg)
     {
         x3d_pairing_data_t data = {
-            .network = network,
-            .transfer = get_network_mask(network)
+                .network  = network,
+                .transfer = get_network_mask(network),
         };
 
         if (no_of_devices(data.transfer) >= X3D_MAX_NET_DEVICES)
@@ -394,7 +395,7 @@ void pairing_task(void *arg)
             x3d_device_t **devices = get_devices_list(data.network);
             if (devices[target_device_no] == NULL)
             {
-                devices[target_device_no] = (x3d_device_t *)calloc(1, sizeof(x3d_device_t));
+                devices[target_device_no]         = (x3d_device_t *)calloc(1, sizeof(x3d_device_t));
                 devices[target_device_no]->on_air = 1;
                 publish_device(devices[target_device_no], data.network, target_device_no, true);
             }
@@ -404,16 +405,16 @@ void pairing_task(void *arg)
     else
     {
         x3d_write_data_t data = {
-            .network = network,
-            .transfer = get_network_mask(network),
-            .target = 1 << (target & 0x0f),
-            .register_high = X3D_REG_H(X3D_REG_START_PAIR),
-            .register_low = X3D_REG_L(X3D_REG_START_PAIR),
-            .values = { 0 }
+                .network       = network,
+                .transfer      = get_network_mask(network),
+                .target        = 1 << (target & 0x0f),
+                .register_high = X3D_REG_H(X3D_REG_START_PAIR),
+                .register_low  = X3D_REG_L(X3D_REG_START_PAIR),
+                .values        = {0},
         };
 
         if (data.transfer == 0 ||
-            (data.transfer & data.target) == 0)
+                (data.transfer & data.target) == 0)
         {
             end_task(arg);
         }
@@ -427,9 +428,9 @@ void pairing_task(void *arg)
 
 void unpairing_task(void *arg)
 {
-    char * pEnd;
+    char *pEnd;
     uint8_t network = strtoul(arg, &pEnd, 10);
-    uint8_t target = strtoul(pEnd, NULL, 10);
+    uint8_t target  = strtoul(pEnd, NULL, 10);
 
     if (!valid_network(network))
     {
@@ -437,9 +438,9 @@ void unpairing_task(void *arg)
     }
 
     x3d_unpairing_data_t data = {
-        .network = network,
-        .target = target & 0x0f,
-        .transfer = get_network_mask(network)
+            .network  = network,
+            .target   = target & 0x0f,
+            .transfer = get_network_mask(network),
     };
 
     if (data.transfer == 0 || (data.transfer & data.target) == 0)
@@ -465,17 +466,17 @@ void unpairing_task(void *arg)
 void reading_task(void *arg)
 {
     char *pArg = NULL, *pEnd = NULL;
-    uint8_t network = strtoul(arg, &pArg, 10);
-    uint16_t target = strtoul(pArg, &pArg, 10);
+    uint8_t network       = strtoul(arg, &pArg, 10);
+    uint16_t target       = strtoul(pArg, &pArg, 10);
     uint8_t register_high = strtoul(pArg, &pArg, 10);
-    uint8_t register_low = strtoul(pArg, &pEnd, 10);
+    uint8_t register_low  = strtoul(pArg, &pEnd, 10);
 
     // check if only three parameters given
     if (pEnd == pArg)
     {
-        register_low = register_high;
+        register_low  = register_high;
         register_high = target;
-        target = get_network_mask(network);
+        target        = get_network_mask(network);
     }
 
     if (!valid_network(network) || no_of_devices(target) == 0)
@@ -484,11 +485,11 @@ void reading_task(void *arg)
     }
 
     x3d_read_data_t data = {
-        .network = network,
-        .transfer = get_network_mask(network),
-        .target = target,
-        .register_high = register_high,
-        .register_low = register_low
+            .network       = network,
+            .transfer      = get_network_mask(network),
+            .target        = target,
+            .register_high = register_high,
+            .register_low  = register_low,
     };
 
     if (data.transfer == 0 || (data.transfer & data.target) == 0)
@@ -502,19 +503,19 @@ void reading_task(void *arg)
     ESP_LOGI(TAG, "read register %02x - %02x from %04x", payload->reg_high, payload->reg_low, payload->target_ack);
 
     int data_slots = ((payload->action & 0xf0) >> 4) + 1;
-    cJSON *root = cJSON_CreateObject();
-	cJSON_AddStringToObject(root, MQTT_JSON_ACTION, MQTT_ACTION_READ);
-	cJSON_AddNumberToObject(root, MQTT_JSON_NETWORK, data.network);
-	cJSON_AddNumberToObject(root, MQTT_JSON_ACK, payload->target_ack);
-	cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_HIGH, payload->reg_high);
-	cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_LOW, payload->reg_low);
+    cJSON *root    = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, MQTT_JSON_ACTION, MQTT_ACTION_READ);
+    cJSON_AddNumberToObject(root, MQTT_JSON_NETWORK, data.network);
+    cJSON_AddNumberToObject(root, MQTT_JSON_ACK, payload->target_ack);
+    cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_HIGH, payload->reg_high);
+    cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_LOW, payload->reg_low);
     cJSON *values = cJSON_AddArrayToObject(root, MQTT_JSON_VALUES);
     for (int i = 0; i < data_slots; i++)
     {
-	    cJSON_AddItemToArray(values, cJSON_CreateNumber(payload->data[i]));
+        cJSON_AddItemToArray(values, cJSON_CreateNumber(payload->data[i]));
     }
     char *json_string = cJSON_PrintUnformatted(root);
-	cJSON_Delete(root);
+    cJSON_Delete(root);
 
     mqtt_publish_subtopic(MQTT_TOPIC_RESULT, json_string, strlen(json_string), 0, 0);
     free(json_string);
@@ -532,19 +533,19 @@ void writing_task(void *arg)
     ESP_LOGI(TAG, "write register %02x - %02x to %04x", payload->reg_high, payload->reg_low, payload->target_ack);
 
     int data_slots = ((payload->action & 0xf0) >> 4) + 1;
-    cJSON *root = cJSON_CreateObject();
-	cJSON_AddStringToObject(root, MQTT_JSON_ACTION, MQTT_CMD_WRITE);
-	cJSON_AddNumberToObject(root, MQTT_JSON_NETWORK, data->network);
-	cJSON_AddNumberToObject(root, MQTT_JSON_ACK, payload->target_ack);
-	cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_HIGH, payload->reg_high);
-	cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_LOW, payload->reg_low);
+    cJSON *root    = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, MQTT_JSON_ACTION, MQTT_CMD_WRITE);
+    cJSON_AddNumberToObject(root, MQTT_JSON_NETWORK, data->network);
+    cJSON_AddNumberToObject(root, MQTT_JSON_ACK, payload->target_ack);
+    cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_HIGH, payload->reg_high);
+    cJSON_AddNumberToObject(root, MQTT_JSON_REGISTER_LOW, payload->reg_low);
     cJSON *values = cJSON_AddArrayToObject(root, MQTT_JSON_VALUES);
     for (int i = 0; i < data_slots; i++)
     {
-	    cJSON_AddItemToArray(values, cJSON_CreateNumber(payload->data[i]));
+        cJSON_AddItemToArray(values, cJSON_CreateNumber(payload->data[i]));
     }
     char *json_string = cJSON_PrintUnformatted(root);
-	cJSON_Delete(root);
+    cJSON_Delete(root);
 
     mqtt_publish_subtopic(MQTT_TOPIC_RESULT, json_string, strlen(json_string), 0, 0);
     free(json_string);
@@ -557,28 +558,28 @@ void writing_task(void *arg)
 
 void process_writing(cJSON *cmd)
 {
-    cJSON *network = cJSON_GetObjectItem(cmd, MQTT_JSON_NETWORK);
-    cJSON *target = cJSON_GetObjectItem(cmd, MQTT_JSON_TARGET);
+    cJSON *network       = cJSON_GetObjectItem(cmd, MQTT_JSON_NETWORK);
+    cJSON *target        = cJSON_GetObjectItem(cmd, MQTT_JSON_TARGET);
     cJSON *register_high = cJSON_GetObjectItem(cmd, MQTT_JSON_REGISTER_HIGH);
-    cJSON *register_low = cJSON_GetObjectItem(cmd, MQTT_JSON_REGISTER_LOW);
-    cJSON *values = cJSON_GetObjectItem(cmd, MQTT_JSON_VALUES);
+    cJSON *register_low  = cJSON_GetObjectItem(cmd, MQTT_JSON_REGISTER_LOW);
+    cJSON *values        = cJSON_GetObjectItem(cmd, MQTT_JSON_VALUES);
 
     if (network == NULL || target == NULL || register_high == NULL || register_low == NULL || values == NULL ||
-        !cJSON_IsNumber(network) || !cJSON_IsNumber(target) || !cJSON_IsNumber(register_high) || !cJSON_IsNumber(register_low) || cJSON_GetArraySize(values) < 1 ||
-        !valid_network(network->valueint))
+            !cJSON_IsNumber(network) || !cJSON_IsNumber(target) || !cJSON_IsNumber(register_high) || !cJSON_IsNumber(register_low) || cJSON_GetArraySize(values) < 1 ||
+            !valid_network(network->valueint))
     {
         return;
     }
 
     x3d_write_data_t *data = (x3d_write_data_t *)malloc(sizeof(x3d_write_data_t));
-    data->network = network->valueint;
-    data->transfer = get_network_mask(data->network);
-    data->target = target->valueint;
-    data->register_high = register_high->valueint;
-    data->register_low = register_low->valueint;
+    data->network          = network->valueint;
+    data->transfer         = get_network_mask(data->network);
+    data->target           = target->valueint;
+    data->register_high    = register_high->valueint;
+    data->register_low     = register_low->valueint;
 
     if (data->transfer == 0 ||
-        (data->transfer & data->target) == 0)
+            (data->transfer & data->target) == 0)
     {
         return;
     }
@@ -624,22 +625,22 @@ void outdoor_temp_task(void *arg)
     double temp = strtod(arg, NULL);
     set_status(MQTT_STATUS_TEMP);
     x3d_temp_data_t data = {
-        .outdoor = X3D_HEADER_EXT_TEMP_OUTDOOR,
-        .temp = temp * 100.0
+            .outdoor = X3D_HEADER_EXT_TEMP_OUTDOOR,
+            .temp    = temp * 100.0,
     };
 
     if (no_of_devices(net_4_device_mask))
     {
-        data.network = NET_4;
-        data.target = net_4_device_mask;
+        data.network  = NET_4;
+        data.target   = net_4_device_mask;
         data.transfer = net_4_device_mask;
         x3d_temp_proc(&data);
     }
 
     if (no_of_devices(net_5_device_mask))
     {
-        data.network = NET_5;
-        data.target = net_5_device_mask;
+        data.network  = NET_5;
+        data.target   = net_5_device_mask;
         data.transfer = net_5_device_mask;
         x3d_temp_proc(&data);
     }
@@ -649,8 +650,8 @@ void outdoor_temp_task(void *arg)
 
 void read_reg_to_devices(x3d_device_t **devices, x3d_read_data_t *data, uint16_t reg)
 {
-    data->register_high = X3D_REG_H(reg);
-    data->register_low = X3D_REG_L(reg);
+    data->register_high                 = X3D_REG_H(reg);
+    data->register_low                  = X3D_REG_L(reg);
     x3d_standard_msg_payload_t *payload = x3d_reading_proc(data);
     for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
     {
@@ -663,37 +664,37 @@ void read_reg_to_devices(x3d_device_t **devices, x3d_read_data_t *data, uint16_t
             devices[i]->on_air = 1;
             switch (reg)
             {
-                case X3D_REG_ATT_POWER:
-                    devices[i]->power = payload->data[i] & 0xff;
-                    break;
-                case X3D_REG_ROOM_TEMP:
-                    devices[i]->room_temp = payload->data[i];
-                    break;
-                case X3D_REG_SETPOINT_STATUS:
-                    devices[i]->set_point = payload->data[i] & 0xff;
-                    uint16_t flags = payload->data[i] & 0xff00;
-                    devices[i]->defrost = FLAG_TO_BITFIELD(flags, X3D_FLAG_DEFROST);
-                    devices[i]->timed = FLAG_TO_BITFIELD(flags, X3D_FLAG_TIMED);
-                    devices[i]->heater_on = FLAG_TO_BITFIELD(flags, X3D_FLAG_HEATER_ON);
-                    devices[i]->heater_stopped = FLAG_TO_BITFIELD(flags, X3D_FLAG_HEATER_STOPPED);
-                    break;
-                case X3D_REG_ERROR_STATUS:
-                    devices[i]->window_open = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_WINDOW_OPEN);
-                    devices[i]->no_temp_sensor = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_NO_TEMP_SENSOR);
-                    devices[i]->battery_low = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_BATTERY_LOW);
-                    break;
-                case X3D_REG_ON_OFF:
-                    devices[i]->enabled = FLAG_TO_BITFIELD(payload->data[i], 0x0001);
-                    break;
-                case X3D_REG_MODE_TIME:
-                    break;
-                case X3D_REG_SETPOINT_DEFROST:
-                    devices[i]->set_point_defrost = payload->data[i] & 0xff;
-                    break;
-                case X3D_REG_SETPOINT_NIGHT_DAY:
-                    devices[i]->set_point_night = payload->data[i] & 0xff;
-                    devices[i]->set_point_day = (payload->data[i] >> 8) & 0xff;
-                    break;
+            case X3D_REG_ATT_POWER:
+                devices[i]->power = payload->data[i] & 0xff;
+                break;
+            case X3D_REG_ROOM_TEMP:
+                devices[i]->room_temp = payload->data[i];
+                break;
+            case X3D_REG_SETPOINT_STATUS:
+                devices[i]->set_point      = payload->data[i] & 0xff;
+                uint16_t flags             = payload->data[i] & 0xff00;
+                devices[i]->defrost        = FLAG_TO_BITFIELD(flags, X3D_FLAG_DEFROST);
+                devices[i]->timed          = FLAG_TO_BITFIELD(flags, X3D_FLAG_TIMED);
+                devices[i]->heater_on      = FLAG_TO_BITFIELD(flags, X3D_FLAG_HEATER_ON);
+                devices[i]->heater_stopped = FLAG_TO_BITFIELD(flags, X3D_FLAG_HEATER_STOPPED);
+                break;
+            case X3D_REG_ERROR_STATUS:
+                devices[i]->window_open    = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_WINDOW_OPEN);
+                devices[i]->no_temp_sensor = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_NO_TEMP_SENSOR);
+                devices[i]->battery_low    = FLAG_TO_BITFIELD(payload->data[i], X3D_FLAG_BATTERY_LOW);
+                break;
+            case X3D_REG_ON_OFF:
+                devices[i]->enabled = FLAG_TO_BITFIELD(payload->data[i], 0x0001);
+                break;
+            case X3D_REG_MODE_TIME:
+                break;
+            case X3D_REG_SETPOINT_DEFROST:
+                devices[i]->set_point_defrost = payload->data[i] & 0xff;
+                break;
+            case X3D_REG_SETPOINT_NIGHT_DAY:
+                devices[i]->set_point_night = payload->data[i] & 0xff;
+                devices[i]->set_point_day   = (payload->data[i] >> 8) & 0xff;
+                break;
             }
         }
         else if (payload->target & (1 << i))
@@ -714,9 +715,9 @@ void device_status_task(void *arg)
     set_status(MQTT_STATUS_STATUS);
     uint16_t device_mask = get_network_mask(network);
     x3d_read_data_t data = {
-        .network = network,
-        .transfer = device_mask,
-        .target = device_mask
+            .network  = network,
+            .transfer = device_mask,
+            .target   = device_mask,
     };
 
     if (no_of_devices(device_mask))
@@ -750,9 +751,9 @@ void device_status_short_task(void *arg)
     set_status(MQTT_STATUS_STATUS);
     uint16_t device_mask = get_network_mask(network);
     x3d_read_data_t data = {
-        .network = network,
-        .transfer = device_mask,
-        .target = device_mask
+            .network  = network,
+            .transfer = device_mask,
+            .target   = device_mask,
     };
 
     if (no_of_devices(device_mask))
@@ -772,7 +773,7 @@ void device_status_short_task(void *arg)
     end_task(arg);
 }
 
-void execute_task(TaskFunction_t pxTaskCode, const char * const pcName, const configSTACK_DEPTH_TYPE usStackDepth, void * const pvParameters)
+void execute_task(TaskFunction_t pxTaskCode, const char *const pcName, const configSTACK_DEPTH_TYPE usStackDepth, void *const pvParameters)
 {
     if (x3d_processing_task_handle != NULL)
     {
@@ -796,7 +797,7 @@ void mqtt_data(char *topic, char *data)
     char *sub_topic = &topic[MQTT_TOPIC_PREFIX_LEN];
     if (strcmp(sub_topic, MQTT_TOPIC_CMD) == 0)
     {
-        cJSON *cmd = cJSON_Parse(data);
+        cJSON *cmd    = cJSON_Parse(data);
         cJSON *action = cJSON_GetObjectItem(cmd, MQTT_JSON_ACTION);
         if (action != NULL)
         {
@@ -842,15 +843,14 @@ void mqtt_data(char *topic, char *data)
 void mqtt_connected(void)
 {
     mqtt_subscribe_subtopic_list(8,
-        MQTT_TOPIC_CMD,
-        MQTT_TOPIC_OUTDOOR_TEMP,
-        MQTT_TOPIC_DEVICE_STATUS,
-        MQTT_TOPIC_DEVICE_STATUS_SHORT,
-        MQTT_TOPIC_RESET,
-        MQTT_TOPIC_PAIR,
-        MQTT_TOPIC_UNPAIR,
-        MQTT_TOPIC_READ
-    );
+            MQTT_TOPIC_CMD,
+            MQTT_TOPIC_OUTDOOR_TEMP,
+            MQTT_TOPIC_DEVICE_STATUS,
+            MQTT_TOPIC_DEVICE_STATUS_SHORT,
+            MQTT_TOPIC_RESET,
+            MQTT_TOPIC_PAIR,
+            MQTT_TOPIC_UNPAIR,
+            MQTT_TOPIC_READ);
     set_status(MQTT_STATUS_START);
     set_status(MQTT_STATUS_IDLE);
     init_mqtt_topic_devices();

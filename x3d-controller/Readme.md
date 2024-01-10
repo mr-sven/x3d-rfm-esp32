@@ -70,7 +70,7 @@ On controller startup, the controller sends NULL to all unused device IDs to rem
 
 ## Outdoor temperature (PUB)
 
-Publish outdoor temperature to all actors to that the thermostates can display it.
+Publish outdoor temperature to all actors so that the thermostates can display it.
 
 * Topic: `/device/esp32/<device-id>/outdoorTemp`
 * Payload: temperature in °C with dot as floatingpoint separator, ex.: `-4.5`
@@ -96,7 +96,7 @@ Response is published in status topic:
 
 ## Unpairing (PUB)
 
-This topic starts pairing mode.
+This topic starts unpairing mode.
 
 * Topic: `/device/esp32/<device-id>/unpair`
 * Payload: `<netNumber> <deviceBit>`
@@ -134,7 +134,7 @@ Status:
 
 ## Read Register (PUB)
 
-This topic starts pairing mode.
+This topic reads registers from devices asn publishes the result to `/device/esp32/<device-id>/result` topic.
 
 * Topic: `/device/esp32/<device-id>/read`
 * Payload: `<netNumber> <targetDevice?> <registerHigh> <registerLow>`
