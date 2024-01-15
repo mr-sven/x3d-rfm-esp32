@@ -1,5 +1,7 @@
 # X3D RFM69 ESP Interface
 
+**User support with RF traces pictures and infos are very welcome. Also development support.**
+
 Note: work in progress
 - Modulation: FSK PCM
 - Frequency: 868.95 MHz
@@ -23,7 +25,7 @@ X3D Protocol analysis: [X3D-Protocol.md](X3D-Protocol.md)
 
 X3D Messages: [X3D-Message-Log.md](X3D-Message-Log.md)
 
-Tydom Hardware analysis: [Tydom.md](Tydom.md)
+[List of X3D Devices](devices/)
 
 ## Wireing
 
