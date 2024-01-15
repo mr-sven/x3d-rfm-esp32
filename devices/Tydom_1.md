@@ -25,3 +25,5 @@
 ## PCB
 
 ![TOP](img/Tydom_1_top.png)
+
+![BOTTOM](img/Tydom_1_bottom.png)
