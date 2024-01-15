@@ -10,6 +10,6 @@ Here is a list of analyzed X3D devices. Support is very welcome.
 
 * [RF 66xx](RF_66xx.md)
 
-## Multifenchise devices
+## Multifrenchise devices
 
 * [RTU 101FS](RTU_101FS.md) Room thermostate
