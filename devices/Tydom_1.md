@@ -15,15 +15,15 @@
 
 ## Chips
 
-* STM32F427 - Core CPU
-* 26F032B - 32 Mbit Serial Quad I/O (SQI) Flash Memory
-* 24M01RP - 1-Mbit serial I²C bus EEPROM
-* KSZ8081 - 10/100 Base-T/TX Physical Layer Transceiver
-* R5F1007EA - RENESAS RL78/G13 64 KB ROM
-* M24LR16E-RMC6T/2 - Dynamic NFC/RFID tag IC with 16-Kbit EEPROM
+* IC1 - STM32F427 - Core CPU
+* IC3 - 24M01RP - 1-Mbit serial I²C bus EEPROM
+* IC3 - 26F032B - 32 Mbit Serial Quad I/O (SQI) Flash Memory
+* IC4 - KSZ8081 - 10/100 Base-T/TX Physical Layer Transceiver
+* IC5 - R5F1007EA - RENESAS RL78/G13 64 KB ROM
+* IC6 - M24LR16E-RMC6T/2 - Dynamic NFC/RFID tag IC with 16-Kbit EEPROM
+* RF - ??? unknown
 
 ## PCB
 
 ![TOP](img/Tydom_1_top.jpg)
-
 ![BOTTOM](img/Tydom_1_bottom.jpg)
