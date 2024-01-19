@@ -15,7 +15,7 @@
 
 ## Chips
 
-* IC1 - STM32F427 - Core CPU
+* IC1 - STM32F427 - 180 MHz Cortex-M4, 2 Mbyte Flash, 256 Kbyte SRAM
 * IC3 - 24M01RP - 1-Mbit serial I²C bus EEPROM
 * IC3 - 26F032B - 32 Mbit Serial Quad I/O (SQI) Flash Memory
 * IC4 - KSZ8081 - 10/100 Base-T/TX Physical Layer Transceiver
