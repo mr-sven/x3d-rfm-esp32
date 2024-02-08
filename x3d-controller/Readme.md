@@ -25,6 +25,8 @@ Implementation is ongoing.
 - [x] Device status
 - [x] Device status short
 - [x] Read Register
+- [x] Enable Device
+- [x] Disable Device
 - [ ] Write Register
 
 ## Device Reset (PUB)
@@ -147,6 +149,41 @@ If the number not matches the network bitmask, the request is ignored.
 
 Status:
 * `reading` - device is in reading
+
+## Enable Device (PUB)
+
+* Topic: `/device/esp32/<device-id>/enable`
+* Payload: `<netNumber> <targetDevice> <mode> <params?>`
+  * netNumber: 4 or 5, the network number, everything else is ignored
+  * targetDevice: target device mask
+  * mode: select active mode
+  * params optional: list of parameters required for specific mode
+
+If the number not matches the network bitmask, the request is ignored.
+
+Possible mode values:
+
+* `day` - activates day mode with configured temp, no params
+* `night` - activates night mode with configured temp, no params
+* `defrost` - activates defrost mode with configured temp, no params
+* `custom` - activates custom temp mode, param: temp
+  * param temperature in °C with dot as floatingpoint separator, ex.: `19.5`
+* `timed` - activates timed temp mode, param: temp and time
+  * param temperature in °C with dot as floatingpoint separator, ex.: `19.5`
+  * param time in minutes
+
+The actor does not differ between Party and Holiday mode. In the end its the time in minutes to stay in that mode.
+
+The modes `day`, `night` and `defrost` will only be activated if full device status read the specified devices temperature parameters.
+
+## Disable Device (PUB)
+
+* Topic: `/device/esp32/<device-id>/disable`
+* Payload: `<netNumber> <targetDevice>`
+  * netNumber: 4 or 5, the network number, everything else is ignored
+  * targetDevice: target device mask
+
+If the number not matches the network bitmask, the request is ignored.
 
 ## Legacy MQTT commands
 

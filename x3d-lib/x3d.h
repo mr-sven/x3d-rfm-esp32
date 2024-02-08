@@ -43,7 +43,7 @@
 #define X3D_IDX_DEVICE_ID                   5
 #define X3D_IDX_NETWORK                     8
 
-// message header offsets from network index 
+// message header offsets from network index
 #define X3D_OFF_HEADER_STATUS               1
 #define X3D_OFF_HEADER_EXT                  2
 
@@ -100,6 +100,7 @@
 #define X3D_REG_OUTDOOR_TEMP                0x1521
 #define X3D_REG_SETPOINT_STATUS             0x1611
 #define X3D_REG_ERROR_STATUS                0x1621
+#define X3D_REG_SET_MODE_TEMP               0x1631
 #define X3D_REG_ON_OFF                      0x1641
 #define X3D_REG_MODE_TIME                   0x1661
 #define X3D_REG_SETPOINT_DEFROST            0x1681
@@ -229,7 +230,7 @@ void x3d_set_ping_device(uint8_t* buffer, int payloadIndex, uint16_t targetSlotM
 
 /**
  * @brief sets device write register data for all devices the same data
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @param targetSlotMask target device slot
@@ -241,7 +242,7 @@ void x3d_set_register_write_same(uint8_t* buffer, int payloadIndex, uint16_t tar
 
 /**
  * @brief sets device write register data for each device separate value
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @param targetSlotMask target device slot
@@ -253,15 +254,15 @@ void x3d_set_register_write(uint8_t* buffer, int payloadIndex, uint16_t targetSl
 
 /**
  * @brief decrement and set the retry value
- * 
+ *
  * @param buffer pointer to the message buffer
  * @return uint8_t previous value of retry count
  */
 uint8_t x3d_dec_retry(uint8_t* buffer);
 
 /**
- * @brief returns the pairing pin 
- * 
+ * @brief returns the pairing pin
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @return uint16_t pairing pin
@@ -270,7 +271,7 @@ uint16_t x3d_get_pairing_pin(uint8_t* buffer, int payloadIndex);
 
 /**
  * @brief returns the retransmit acknowledge slot data
- * 
+ *
  * @param buffer pointer to the message buffer
  * @param payloadIndex index of the payload
  * @return uint16_t acknowledge slot data
@@ -279,7 +280,7 @@ uint16_t x3d_get_retrans_ack(uint8_t* buffer, int payloadIndex);
 
 /**
  * @brief increments and encrypts the message id, takes also care of the zero stepover
- * 
+ *
  * @param pMsgId pointer to the message id
  * @param deviceId 24bit device id
  * @return uint16_t encrypted message id
@@ -288,7 +289,7 @@ uint16_t x3d_enc_msg_id(uint16_t *pMsgId, uint32_t deviceId);
 
 /**
  * @brief decrypts the message id
- * 
+ *
  * @param encMsgId encrypted value
  * @param deviceId 24bit device id
  * @return uint16_t decrypted message id
