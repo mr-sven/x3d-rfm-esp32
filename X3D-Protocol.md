@@ -13,6 +13,11 @@ The responding device waites (count + 1) * 18 ms and responds with it's answer i
 The protocol is mesh based. The maximum number of actors can be 16 in one mesh network.
 The limitation is due to the maximum packet size of 64, on register read and write request, every device gets it's own 16bit data field, so the packet increases by 2 byte each device.
 
+> #### Thermostate [RTU 101FS](devices/RTU_101FS.md) Notes
+>
+> At the moment there is no way that it reads the temperature registers (`0x16 0x81 / 0x91`), I assume they are informational.
+> Currently you can't configure these settings via TyDom or other tool.
+
 ## RF Specifications
 
 - Modulation: FSK PCM
