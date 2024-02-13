@@ -1,5 +1,9 @@
 # X3D Gateway
 
+> Due to limitations in target devices and commands and stuff, this folder is marked as **depricated** and don't get any update.
+>
+> The work continues within a new controller version and folder.
+
 ## MQTT
 
 Commands can be send to `/device/esp32/<device-id>/cmd` topic.
