@@ -1,0 +1,27 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.adapterTargetName": "esp32",
+  "idf.openOcdConfigs": [
+    "board/esp32-wrover-kit-3.3v.cfg"
+  ],
+  "idf.flashType": "UART",
+  "idf.port": "/dev/ttyUSB0",
+  "files.associations": {
+    "sx1231.h": "c",
+    "sx1231_types.h": "c",
+    "mqtt.h": "c",
+    "ledc.h": "c",
+    "wifi.h": "c",
+    "x3d.h": "c",
+    "rfm.h": "c",
+    "x3d_handler.h": "c",
+    "ota.h": "c"
+  },
+  "files.exclude": {
+    "**/spi_flash/sim/**": true
+  },
+  "search.exclude": {
+    "**/spi_flash/sim/**": true
+  },
+  "cmake.configureOnOpen": false,
+}

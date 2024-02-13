@@ -1,0 +1,34 @@
+menu "X3D Controller Config"
+
+    orsource "$IDF_PATH/examples/common_components/env_caps/$IDF_TARGET/Kconfig.env_caps"
+
+    config X3D_WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the example to connect to.
+
+    config X3D_WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the example to use.
+
+    config X3D_FIRMWARE_UPG_URL
+        string "Firmware Upgrade URL"
+        default "http://192.168.2.106:8070/ng-x3d-ctrl.bin"
+        help
+            URL of server which hosts the firmware image.
+
+    config X3D_OTA_RECV_TIMEOUT
+        int "OTA Receive Timeout"
+        default 5000
+        help
+            Maximum time for reception
+
+    config X3D_BROKER_URL
+        string "MQTT Broker URL"
+        default "mqtt://mqtt.eclipseprojects.io"
+        help
+            URL of the broker to connect to
+endmenu
