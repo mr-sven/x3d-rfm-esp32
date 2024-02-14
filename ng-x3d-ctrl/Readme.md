@@ -29,6 +29,7 @@ List of commands:
   * `/device/x3d/<device-id>/<net>/dest/<0..15,...>/write`
   * `/device/x3d/<device-id>/<net>/dest/<0..15,...>/enable`
   * `/device/x3d/<device-id>/<net>/dest/<0..15,...>/disable`
+  * `/device/x3d/<device-id>/<net>/dest/<0..15>/pair`
   * `/device/x3d/<device-id>/<net>/dest/<0..15>/unpair`
 
 List of returns:
