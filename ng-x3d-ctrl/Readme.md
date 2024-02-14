@@ -1,6 +1,11 @@
 # Next Gen X3D Control Gateway
 
+This controller version is capable of different device types. Each device type can have a set of features.
 
+Current implemented devices with features:
+* RF66XX: OUTDOOR_TEMP, TEMP_ACTOR
+
+The features can be used to differ between actors/sensors and their faunctions.
 
 ## MQTT definitions
 
@@ -37,3 +42,38 @@ List of returns:
 * `/device/x3d/<device-id>/status`
 * `/device/x3d/<device-id>/result`
 * `/device/x3d/<device-id>/<net>/dest/<0..15>/status`
+
+### Status return
+
+`/device/x3d/<device-id>/status`
+
+* `off` - Submittet as LWT, so when the device is not connected it contains this value.
+* `start` - Device is powering on.
+* `idle` - Device is in idle mode.
+* `reset` - Device is resetting.
+
+### Result return
+
+`/device/x3d/<device-id>/result`
+
+### Device status return
+
+`/device/x3d/<device-id>/<net>/dest/<0..15>/status`
+
+### Reset request
+
+Send a message to this topic, restarts the controller and it may update via OTA.
+
+* Topic: `/device/x3d/<device-id>/reset`
+* Payload: whatever
+
+### Outdoor temperature request
+
+Publish outdoor temperature to all actors so that the thermostates can display it.
+
+* Topic: `/device/x3d/<device-id>/outdoor-temp`
+* Payload: temperature in °C with dot as floatingpoint separator, ex.: `-4.5`
+* Required feature: OUTDOOR_TEMP
+
+Status:
+* `temp` - device is in temp sending
