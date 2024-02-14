@@ -93,6 +93,11 @@ static inline int valid_network(uint8_t network)
     return network == NET_4 || network == NET_5;
 }
 
+static inline int no_of_devices(uint16_t mask)
+{
+    return __builtin_popcount(mask);
+}
+
 /**
  * @brief Initialize device data list
  *
@@ -300,11 +305,19 @@ void handle_dest_topic(uint8_t network, uint16_t target_mask, char *topic, char 
     ESP_LOGI(TAG, "network: %d dest: 0x%04x subtopic: %s", network, target_mask, topic);
     if (strcmp(topic, MQTT_TOPIC_PAIR) == 0)
     {
-
+        // paring only on one device possible
+        if (no_of_devices(target_mask) > 1)
+        {
+            return;
+        }
     }
     else if (strcmp(topic, MQTT_TOPIC_UNPAIR) == 0)
     {
-
+        // unparing only on one device possible
+        if (no_of_devices(target_mask) > 1)
+        {
+            return;
+        }
     }
     else if (strcmp(topic, MQTT_TOPIC_READ) == 0)
     {
