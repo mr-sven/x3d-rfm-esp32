@@ -11,6 +11,7 @@
 #include <string.h>
 #include "x3d_device.h"
 
+// using string constants instead of defines to save flash memory
 /*
 static const char JSON_ACTION[] =               "action";
 static const char JSON_NETWORK[] =              "net";
@@ -20,6 +21,8 @@ static const char JSON_REGISTER_LOW[] =         "regLow";
 static const char JSON_VALUES[] =               "values";
 static const char JSON_TARGET[] =               "target";
 */
+static const char JSON_TYPE[] =                 "type";
+
 static const char JSON_ROOM_TEMP[] =            "roomTemp";
 static const char JSON_SET_POINT[] =            "setPoint";
 static const char JSON_ENABLED[] =              "enabled";
@@ -69,6 +72,7 @@ bool x3d_device_from_type(x3d_device_t *device, x3d_device_type_t type)
 cJSON * x3d_rf66xx_to_json(x3d_rf66xx_t *device)
 {
     cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, JSON_TYPE, x3d_device_type_to_string(X3D_DEVICE_TYPE_RF66XX));
     cJSON_AddNumberToObject(root, JSON_ROOM_TEMP, (double)device->room_temp / 100.0);
     cJSON_AddNumberToObject(root, JSON_POWER, (uint16_t)device->power * 50);
     cJSON_AddNumberToObject(root, JSON_SET_POINT, (double)device->set_point * 0.5);

@@ -36,6 +36,7 @@
 #define NET_4                          4
 #define NET_5                          5
 
+// using string constants instead of defines to save flash memory
 static const char NVS_NET_4_DEVICES[] =              "net_4_devices";
 static const char NVS_NET_5_DEVICES[] =              "net_5_devices";
 
