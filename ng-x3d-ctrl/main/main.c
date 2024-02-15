@@ -36,27 +36,44 @@
 #define NET_4                          4
 #define NET_5                          5
 
+// task execution args
+typedef struct {
+    uint8_t network;
+    uint16_t target_mask;
+    char *args;
+} task_arg_t;
+
+static const char JSON_ACTION[] =                    "action";
+static const char JSON_NETWORK[] =                   "net";
+static const char JSON_ACK[] =                       "ack";
+static const char JSON_REGISTER_HIGH[] =             "regHigh";
+static const char JSON_REGISTER_LOW[] =              "regLow";
+static const char JSON_VALUES[] =                    "values";
+
 // using string constants instead of defines to save flash memory
 static const char NVS_NET_4_DEVICES[] =              "net_4_devices";
 static const char NVS_NET_5_DEVICES[] =              "net_5_devices";
 
-static const char MQTT_TOPIC_RESET[] =               "/reset";
-static const char MQTT_TOPIC_OUTDOOR_TEMP[] =        "/outdoor-temp";
-static const char MQTT_TOPIC_PAIR[] =                "/pair";
-static const char MQTT_TOPIC_DEVICE_STATUS[] =       "/device-status";
-static const char MQTT_TOPIC_DEVICE_STATUS_SHORT[] = "/device-status-short";
-static const char MQTT_TOPIC_READ[] =                "/read";
-static const char MQTT_TOPIC_ENABLE[] =              "/enable";
-static const char MQTT_TOPIC_DISABLE[] =             "/disable";
-static const char MQTT_TOPIC_WRITE[] =               "/write";
-static const char MQTT_TOPIC_UNPAIR[] =              "/unpair";
+static const char MQTT_TOPIC_CMD[] =                 "/cmd";
+static const char MQTT_TOPIC_RESULT[] =              "/result";
+
+static const char COMMAND_RESET[] =                  "reset";
+static const char COMMAND_OUTDOOR_TEMP[] =           "outdoor-temp "; // include space because of command arguments
+static const char COMMAND_PAIR[] =                   "pair";
+static const char COMMAND_DEVICE_STATUS[] =          "device-status";
+static const char COMMAND_DEVICE_STATUS_SHORT[] =    "device-status-short";
+static const char COMMAND_READ[] =                   "read "; // include space because of command arguments
+static const char COMMAND_ENABLE[] =                 "enable "; // include space because of command arguments
+static const char COMMAND_DISABLE[] =                "disable";
+static const char COMMAND_WRITE[] =                  "write "; // include space because of command arguments
+static const char COMMAND_UNPAIR[] =                 "unpair";
 
 static const char MQTT_STATUS_OFF[] =                "off";
 static const char MQTT_STATUS_IDLE[] =               "idle";
+static const char MQTT_STATUS_READING[] =            "reading";
 /*static const char MQTT_STATUS_PAIRING[] =            "pairing";
 static const char MQTT_STATUS_PAIRING_SUCCESS[] =    "pairing success";
 static const char MQTT_STATUS_PAIRING_FAILED[] =     "pairing failed";
-static const char MQTT_STATUS_READING[] =            "reading";
 static const char MQTT_STATUS_WRITING[] =            "writing";
 static const char MQTT_STATUS_UNPAIRING[] =          "unpairing";
 static const char MQTT_STATUS_STATUS[] =             "status"; */
@@ -66,17 +83,17 @@ static const char MQTT_STATUS_START[] =              "start";
 
 static const char TAG[] = "MAIN";
 
-#define MQTT_TOPIC_PREFIX_LEN   18
+#define MQTT_TOPIC_PREFIX_LEN   17
 #define MQTT_TOPIC_PREFIX_SIZE  (MQTT_TOPIC_PREFIX_LEN + 1)
 
-#define MQTT_TOPIC_STATUS_LEN   25
+#define MQTT_TOPIC_STATUS_LEN   24
 #define MQTT_TOPIC_STATUS_SIZE  (MQTT_TOPIC_STATUS_LEN + 1)
 
 // Prefix used for mqtt topics
-static char mqtt_topic_prefix[MQTT_TOPIC_PREFIX_SIZE]; // strlen("/device/x3d/aabbcc") = 18 + 1
+static char mqtt_topic_prefix[MQTT_TOPIC_PREFIX_SIZE]; // strlen("device/x3d/aabbcc") = 17 + 1
 
 // status topic
-static char mqtt_topic_status[MQTT_TOPIC_STATUS_SIZE]; // strlen("/device/x3d/aabbcc/status") = 25 + 1
+static char mqtt_topic_status[MQTT_TOPIC_STATUS_SIZE]; // strlen("device/x3d/aabbcc/status") = 24 + 1
 
 // list of devices
 static x3d_device_t net_4_devices[X3D_MAX_NET_DEVICES] = {0};
@@ -96,6 +113,19 @@ static inline int valid_network(uint8_t network)
 static inline int no_of_devices(uint16_t mask)
 {
     return __builtin_popcount(mask);
+}
+
+static inline uint16_t get_network_mask(uint8_t network)
+{
+    switch (network)
+    {
+    case NET_4:
+        return net_4_transfer_mask;
+    case NET_5:
+        return net_5_transfer_mask;
+    default:
+        return 0;
+    }
 }
 
 /**
@@ -173,6 +203,23 @@ void publish_device(x3d_device_t *device, uint8_t network, uint8_t id, bool forc
         mqtt_publish(topic, json_string, strlen(json_string), 0, 1);
         free(json_string);
     }
+}
+
+/**
+ * @brief Publishes message to sub topic of device
+ *
+ * @param subtopic
+ * @param data
+ * @param len
+ * @param qos
+ * @param retain
+ * @return int
+ */
+int mqtt_publish_subtopic(const char *subtopic, const char *data, int len, int qos, int retain)
+{
+    char topic[128];
+    snprintf(topic, 128, "%s%s", mqtt_topic_prefix, subtopic);
+    return mqtt_publish(topic, data, len, qos, retain);
 }
 
 /**
@@ -276,6 +323,55 @@ void outdoor_temp_task(void *arg)
     end_task(arg);
 }
 
+void reading_task(void *arg)
+{
+    task_arg_t *args = arg;
+
+    char *pArg = NULL, *pEnd = NULL;
+    uint8_t register_high = strtoul(args->args, &pArg, 10);
+    uint8_t register_low  = strtoul(pArg, &pEnd, 10);
+
+    x3d_read_data_t data = {
+            .network       = args->network,
+            .transfer      = get_network_mask(args->network),
+            .target        = args->target_mask,
+            .register_high = register_high,
+            .register_low  = register_low,
+    };
+
+    if (data.transfer == 0 || (data.transfer & data.target) == 0)
+    {
+        free(args->args);
+        end_task(arg);
+    }
+
+    set_status(MQTT_STATUS_READING);
+    x3d_standard_msg_payload_t *payload = x3d_reading_proc(&data);
+
+    ESP_LOGI(TAG, "read register %02x - %02x from %04x", payload->reg_high, payload->reg_low, payload->target_ack);
+
+    int data_slots = ((payload->action & 0xf0) >> 4) + 1;
+    cJSON *root    = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, JSON_ACTION, "read");
+    cJSON_AddNumberToObject(root, JSON_NETWORK, data.network);
+    cJSON_AddNumberToObject(root, JSON_ACK, payload->target_ack);
+    cJSON_AddNumberToObject(root, JSON_REGISTER_HIGH, payload->reg_high);
+    cJSON_AddNumberToObject(root, JSON_REGISTER_LOW, payload->reg_low);
+    cJSON *values = cJSON_AddArrayToObject(root, JSON_VALUES);
+    for (int i = 0; i < data_slots; i++)
+    {
+        cJSON_AddItemToArray(values, cJSON_CreateNumber(payload->data[i]));
+    }
+    char *json_string = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+
+    mqtt_publish_subtopic(MQTT_TOPIC_RESULT, json_string, strlen(json_string), 0, 0);
+    free(json_string);
+
+    free(args->args);
+    end_task(arg);
+}
+
 /**
  * @brief Wrapper for xTaskCreate to check if a processing task is already executed
  *
@@ -299,41 +395,98 @@ void execute_task(TaskFunction_t pxTaskCode, const char *const pcName, const con
  * MQTT Handler Region
  */
 
+/**
+ * @brief Executes device based commands
+ *
+ * @param data
+ */
+void handle_device_command(char *data)
+{
+    if (strcmp(data, COMMAND_RESET) == 0)
+    {
+        set_status(MQTT_STATUS_RESET);
+        ESP_LOGI(TAG, "Prepare to restart system!");
+        esp_restart();
+    }
+    else if (strncmp(data, COMMAND_OUTDOOR_TEMP, strlen(COMMAND_OUTDOOR_TEMP)) == 0)
+    {
+        execute_task(outdoor_temp_task, "outdoor_temp_task", 2048, strdup(&data[strlen(COMMAND_OUTDOOR_TEMP)]));
+    }
+}
+
+/**
+ * @brief Executes network based commands
+ *
+ * @param network
+ * @param data
+ */
+void handle_network_command(uint8_t network, char *data)
+{
+    if (strcmp(data, COMMAND_PAIR) == 0)
+    {
+
+    }
+    else if (strcmp(data, COMMAND_DEVICE_STATUS) == 0)
+    {
+
+    }
+    else if (strcmp(data, COMMAND_DEVICE_STATUS_SHORT) == 0)
+    {
+
+    }
+}
+
+/**
+ * @brief Executes destination based commands
+ *
+ * @param network
+ * @param target_mask
+ * @param data
+ */
+void handle_dest_command(uint8_t network, uint16_t target_mask, char *data)
+{
+    if (strcmp(data, COMMAND_PAIR) == 0)
+    {
+        if (no_of_devices(target_mask) > 1)
+        {
+            return;
+        }
+    }
+    else if (strcmp(data, COMMAND_UNPAIR) == 0)
+    {
+        if (no_of_devices(target_mask) > 1)
+        {
+            return;
+        }
+    }
+    else if (strncmp(data, COMMAND_READ, strlen(COMMAND_READ)) == 0)
+    {
+        task_arg_t *args = calloc(1, sizeof(task_arg_t));
+        args->network = network;
+        args->target_mask = target_mask;
+        args->args = strdup(&data[strlen(COMMAND_READ)]);
+        execute_task(reading_task, "reading_task", 4096, args);
+    }
+    else if (strncmp(data, COMMAND_WRITE, strlen(COMMAND_WRITE)) == 0)
+    {
+
+    }
+    else if (strncmp(data, COMMAND_ENABLE, strlen(COMMAND_ENABLE)) == 0)
+    {
+
+    }
+    else if (strcmp(data, COMMAND_DISABLE) == 0)
+    {
+
+    }
+}
 
 void handle_dest_topic(uint8_t network, uint16_t target_mask, char *topic, char *data)
 {
-    ESP_LOGI(TAG, "network: %d dest: 0x%04x subtopic: %s", network, target_mask, topic);
-    if (strcmp(topic, MQTT_TOPIC_PAIR) == 0)
+    ESP_LOGI(TAG, "network: %d dest: %04x subtopic: %s", network, target_mask, topic);
+    if (strcmp(topic, MQTT_TOPIC_CMD) == 0)
     {
-        // paring only on one device possible
-        if (no_of_devices(target_mask) > 1)
-        {
-            return;
-        }
-    }
-    else if (strcmp(topic, MQTT_TOPIC_UNPAIR) == 0)
-    {
-        // unparing only on one device possible
-        if (no_of_devices(target_mask) > 1)
-        {
-            return;
-        }
-    }
-    else if (strcmp(topic, MQTT_TOPIC_READ) == 0)
-    {
-
-    }
-    else if (strcmp(topic, MQTT_TOPIC_WRITE) == 0)
-    {
-
-    }
-    else if (strcmp(topic, MQTT_TOPIC_ENABLE) == 0)
-    {
-
-    }
-    else if (strcmp(topic, MQTT_TOPIC_DISABLE) == 0)
-    {
-
+        handle_dest_command(network, target_mask, data);
     }
 }
 
@@ -348,21 +501,9 @@ void handle_dest_topic(uint8_t network, uint16_t target_mask, char *topic, char 
 void handle_network_topic(uint8_t network, char *topic, char *data)
 {
     ESP_LOGI(TAG, "network: %d subtopic: %s", network, topic);
-    if (strcmp(topic, MQTT_TOPIC_PAIR) == 0)
+    if (strcmp(topic, MQTT_TOPIC_CMD) == 0)
     {
-
-    }
-    else if (strcmp(topic, MQTT_TOPIC_DEVICE_STATUS) == 0)
-    {
-
-    }
-    else if (strcmp(topic, MQTT_TOPIC_DEVICE_STATUS_SHORT) == 0)
-    {
-
-    }
-    else if (strcmp(topic, MQTT_TOPIC_READ) == 0)
-    {
-
+        handle_network_command(network, data);
     }
     else if (strncmp(topic, "/dest/", 6) == 0)
     {
@@ -419,15 +560,9 @@ void mqtt_data(char *topic, char *data)
     // move pointer to remove prefix
     topic += MQTT_TOPIC_PREFIX_LEN;
     ESP_LOGI(TAG, "subtopic: %s", topic);
-    if (strcmp(topic, MQTT_TOPIC_RESET) == 0)
+    if (strcmp(topic, MQTT_TOPIC_CMD) == 0)
     {
-        set_status(MQTT_STATUS_RESET);
-        ESP_LOGI(TAG, "Prepare to restart system!");
-        esp_restart();
-    }
-    else if (strcmp(topic, MQTT_TOPIC_OUTDOOR_TEMP) == 0)
-    {
-        execute_task(outdoor_temp_task, "outdoor_temp_task", 2048, strdup(data));
+        handle_device_command(data);
     }
     else if (strncmp(topic, "/net-", 5) == 0)
     {
@@ -453,24 +588,27 @@ void mqtt_connected(void)
 {
     set_status(MQTT_STATUS_START);
 
-    // device based topics
-    mqtt_subscribe_subtopic(MQTT_TOPIC_RESET);
-    mqtt_subscribe_subtopic(MQTT_TOPIC_OUTDOOR_TEMP);
+    char topic[128];
 
-    // network based topics
-    for (int i = NET_4; i <= NET_5; i++)
-    {
-        mqtt_subscribe_net_subtopic(MQTT_TOPIC_PAIR, i);
-        mqtt_subscribe_net_subtopic(MQTT_TOPIC_DEVICE_STATUS, i);
-        mqtt_subscribe_net_subtopic(MQTT_TOPIC_DEVICE_STATUS_SHORT, i);
-        mqtt_subscribe_net_subtopic(MQTT_TOPIC_READ, i);
-        mqtt_subscribe_net_device_subtopic(MQTT_TOPIC_READ, i);
-        mqtt_subscribe_net_device_subtopic(MQTT_TOPIC_WRITE, i);
-        mqtt_subscribe_net_device_subtopic(MQTT_TOPIC_ENABLE, i);
-        mqtt_subscribe_net_device_subtopic(MQTT_TOPIC_DISABLE, i);
-        mqtt_subscribe_net_device_subtopic(MQTT_TOPIC_PAIR, i);
-        mqtt_subscribe_net_device_subtopic(MQTT_TOPIC_UNPAIR, i);
-    }
+    // device command topic
+    snprintf(topic, 128, "%s%s", mqtt_topic_prefix, MQTT_TOPIC_CMD);
+    mqtt_subscribe(topic, 0);
+
+    // net 4 command topic
+    snprintf(topic, 128, "%s/net-%d%s", mqtt_topic_prefix, NET_4, MQTT_TOPIC_CMD);
+    mqtt_subscribe(topic, 0);
+
+    // net 5 command topic
+    snprintf(topic, 128, "%s/net-%d%s", mqtt_topic_prefix, NET_5, MQTT_TOPIC_CMD);
+    mqtt_subscribe(topic, 0);
+
+    // net 4 device command topic
+    snprintf(topic, 128, "%s/net-%d/dest/+%s", mqtt_topic_prefix, NET_4, MQTT_TOPIC_CMD);
+    mqtt_subscribe(topic, 0);
+
+    // net 5 device command topic
+    snprintf(topic, 128, "%s/net-%d/dest/+%s", mqtt_topic_prefix, NET_5, MQTT_TOPIC_CMD);
+    mqtt_subscribe(topic, 0);
 
     // prepare destination device topics
     for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
@@ -535,7 +673,7 @@ void app_main(void)
 
     // prepare device id
     x3d_set_device_id(mac[3] << 16 | mac[4] << 8 | mac[5]);
-    snprintf(mqtt_topic_prefix, MQTT_TOPIC_PREFIX_SIZE, "/device/x3d/%02x%02x%02x", mac[3], mac[4], mac[5]);
+    snprintf(mqtt_topic_prefix, MQTT_TOPIC_PREFIX_SIZE, "device/x3d/%02x%02x%02x", mac[3], mac[4], mac[5]);
     snprintf(mqtt_topic_status, MQTT_TOPIC_STATUS_SIZE, "%s/status", mqtt_topic_prefix);
 
     // init RFM device
