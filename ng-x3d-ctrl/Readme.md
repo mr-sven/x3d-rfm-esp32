@@ -66,6 +66,22 @@ Publish outdoor temperature to all actors so that the thermostates can display i
 
 ## MQTT destination device Commands
 
+### Pair command
+
+The specified device is switched to pairing mode and is not responding anymore until timeout or device pairing is done.
+
+* Payload: `pair`
+* Status
+  * `pairing` - device is in pairing
+
+### Unpair command
+
+Unpairs the specified devices.
+
+* Payload: `unpair`
+* Status
+  * `unpairing` - device is in unpairing
+
 ### Read command
 
 Reads registers from devices and publishes the result to `device/x3d/<device-id>/result` topic.
@@ -74,4 +90,10 @@ Reads registers from devices and publishes the result to `device/x3d/<device-id>
   * `<registerHigh>` - register high number
   * `<registerLow>` - register low number
 * Status
-  * `reading ` - device is in reading
+  * `reading` - device is in reading
+
+### Disable command
+
+Unpairs the specified devices.
+
+* Payload: `disable`

@@ -64,10 +64,18 @@ typedef struct
 /**
  * @brief convert type to string
  *
- * @param type devic etype
+ * @param type device type
  * @return const char*
  */
 const char * x3d_device_type_to_string(x3d_device_type_t type);
+
+/**
+ * @brief convert string to type
+ *
+ * @param str device type string
+ * @return x3d_device_type_t
+ */
+x3d_device_type_t x3d_device_type_from_string(const char *str);
 
 /**
  * @brief sets device type struct from type
@@ -81,7 +89,18 @@ bool x3d_device_from_type(x3d_device_t *device, x3d_device_type_t type);
 /**
  * @brief Converts x3d_rf66xx_t device to json object
  *
- * @param device
+ * @param device pointer to target struct
  * @return cJSON*
  */
 cJSON * x3d_rf66xx_to_json(x3d_rf66xx_t *device);
+
+/**
+ * @brief Sets rf66xx data from reg
+ *
+ * @param device pointer to target struct
+ * @param req is device requested (target)
+ * @param ack has device respond (target_ack)
+ * @param reg register
+ * @param data data
+ */
+void x3d_rf66xx_set_from_reg(x3d_rf66xx_t *device, int req, int ack, uint16_t reg, uint16_t data);

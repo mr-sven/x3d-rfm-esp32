@@ -36,6 +36,9 @@
 #define NET_4                          4
 #define NET_5                          5
 
+#define X3D_REG_ON_OFF_ON              0x0739
+#define X3D_REG_ON_OFF_OFF             0x0738
+
 // task execution args
 typedef struct {
     uint8_t network;
@@ -60,6 +63,7 @@ static const char MQTT_TOPIC_RESULT[] =              "/result";
 static const char COMMAND_RESET[] =                  "reset";
 static const char COMMAND_OUTDOOR_TEMP[] =           "outdoor-temp "; // include space because of command arguments
 static const char COMMAND_PAIR[] =                   "pair";
+static const char COMMAND_PAIR_NET[] =               "pair ";
 static const char COMMAND_DEVICE_STATUS[] =          "device-status";
 static const char COMMAND_DEVICE_STATUS_SHORT[] =    "device-status-short";
 static const char COMMAND_READ[] =                   "read "; // include space because of command arguments
@@ -71,12 +75,13 @@ static const char COMMAND_UNPAIR[] =                 "unpair";
 static const char MQTT_STATUS_OFF[] =                "off";
 static const char MQTT_STATUS_IDLE[] =               "idle";
 static const char MQTT_STATUS_READING[] =            "reading";
-/*static const char MQTT_STATUS_PAIRING[] =            "pairing";
+static const char MQTT_STATUS_PAIRING[] =            "pairing";
 static const char MQTT_STATUS_PAIRING_SUCCESS[] =    "pairing success";
 static const char MQTT_STATUS_PAIRING_FAILED[] =     "pairing failed";
-static const char MQTT_STATUS_WRITING[] =            "writing";
+/*
+static const char MQTT_STATUS_WRITING[] =            "writing"; */
 static const char MQTT_STATUS_UNPAIRING[] =          "unpairing";
-static const char MQTT_STATUS_STATUS[] =             "status"; */
+static const char MQTT_STATUS_STATUS[] =             "status";
 static const char MQTT_STATUS_TEMP[] =               "temp";
 static const char MQTT_STATUS_RESET[] =              "reset";
 static const char MQTT_STATUS_START[] =              "start";
@@ -128,6 +133,19 @@ static inline uint16_t get_network_mask(uint8_t network)
     }
 }
 
+static inline x3d_device_t *get_devices_list(uint8_t network)
+{
+    switch (network)
+    {
+    case NET_4:
+        return net_4_devices;
+    case NET_5:
+        return net_5_devices;
+    default:
+        return NULL;
+    }
+}
+
 /**
  * @brief Initialize device data list
  *
@@ -135,7 +153,7 @@ static inline uint16_t get_network_mask(uint8_t network)
  * @param devices
  * @return uint16_t device transfer mask
  */
-uint16_t init_device_data(x3d_device_type_t *nvs_devices, x3d_device_t devices[X3D_MAX_NET_DEVICES])
+uint16_t init_device_data(x3d_device_type_t *nvs_devices, x3d_device_t *devices)
 {
     uint16_t mask = 0;
     for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
@@ -155,7 +173,7 @@ uint16_t init_device_data(x3d_device_type_t *nvs_devices, x3d_device_t devices[X
  * @param feature
  * @return uint16_t
  */
-uint16_t get_target_mask_by_feature(x3d_device_t devices[X3D_MAX_NET_DEVICES], x3d_device_feature_t feature)
+uint16_t get_target_mask_by_feature(x3d_device_t *devices, x3d_device_feature_t feature)
 {
     uint16_t mask = 0;
     for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
@@ -273,6 +291,143 @@ int mqtt_subscribe_net_device_subtopic(const char *subtopic, int net)
     return mqtt_subscribe(topic, 0);
 }
 
+/**
+ * @brief saves the devices type list to nvs
+ *
+ * @param network target network
+ * @param devices list of devices
+ */
+void save_devices_to_nvs(uint8_t network, x3d_device_t *devices)
+{
+    const char *key;
+    switch (network)
+    {
+    case NET_4:
+        key = NVS_NET_4_DEVICES;
+        break;
+    case NET_5:
+        key = NVS_NET_5_DEVICES;
+        break;
+    default:
+        return;
+    }
+
+    // build storage blob
+    x3d_device_type_t nvs_devices[X3D_MAX_NET_DEVICES] = { X3D_DEVICE_TYPE_NONE };
+    for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
+    {
+        nvs_devices[i] = devices[i].type;
+    }
+
+    nvs_handle_t nvs_ctx_handle;
+    if (nvs_open("ctx", NVS_READWRITE, &nvs_ctx_handle) == ESP_OK)
+    {
+        nvs_set_blob(nvs_ctx_handle, key, nvs_devices, X3D_MAX_NET_DEVICES);
+        nvs_commit(nvs_ctx_handle);
+        nvs_close(nvs_ctx_handle);
+    }
+}
+
+void remove_device_data(uint8_t network, uint16_t remove_mask)
+{
+    x3d_device_t *devices = NULL;
+
+    // get devices list and remove from transfer mask
+    switch (network)
+    {
+    case NET_4:
+        devices = net_4_devices;
+        net_4_transfer_mask &= ~(remove_mask);
+        break;
+    case NET_5:
+        devices = net_5_devices;
+        net_5_transfer_mask &= ~(remove_mask);
+        break;
+    default:
+        return;
+    }
+
+    // remove device data
+    for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
+    {
+        if (remove_mask & (1 << i) && devices[i].data != NULL)
+        {
+            free(devices[i].data);
+            devices[i].type = X3D_DEVICE_TYPE_NONE;
+            publish_device(NULL, network, i, true);
+        }
+    }
+
+    save_devices_to_nvs(network, devices);
+}
+
+void create_device_data(uint8_t network, x3d_device_type_t type, uint8_t target_no)
+{
+    if (target_no >= X3D_MAX_NET_DEVICES || type == X3D_DEVICE_TYPE_NONE)
+    {
+        return;
+    }
+
+    x3d_device_t *devices = NULL;
+
+    // get devices list and remove from transfer mask
+    switch (network)
+    {
+    case NET_4:
+        devices = net_4_devices;
+        net_4_transfer_mask |= (1 << target_no);
+        break;
+    case NET_5:
+        devices = net_5_devices;
+        net_5_transfer_mask |= (1 << target_no);
+        break;
+    default:
+        return;
+    }
+
+    x3d_device_from_type(&devices[target_no], type);
+    save_devices_to_nvs(network, devices);
+    publish_device(&devices[target_no], network, target_no, true);
+}
+
+void read_reg_to_devices(x3d_device_t *devices, x3d_read_data_t *data, uint16_t reg)
+{
+    data->register_high                 = X3D_REG_H(reg);
+    data->register_low                  = X3D_REG_L(reg);
+    x3d_standard_msg_payload_t *payload = x3d_reading_proc(data);
+    for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
+    {
+        int req = payload->target & (1 << i);
+        int ack = payload->target_ack & (1 << i);
+
+        switch (devices[i].type)
+        {
+            case X3D_DEVICE_TYPE_RF66XX:
+                x3d_rf66xx_set_from_reg((x3d_rf66xx_t *)devices[i].data, req, ack, reg, payload->data[i]);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+void set_reg_same(x3d_write_data_t * data, uint16_t reg, uint16_t value)
+{
+    data->register_high = X3D_REG_H(reg);
+    data->register_low  = X3D_REG_L(reg);
+    for (int i = 0; i < X3D_MAX_PAYLOAD_DATA_FIELDS; i++)
+    {
+        if (data->target & (1 << i))
+        {
+            data->values[i] = value;
+        }
+        else
+        {
+            data->values[i] = 0;
+        }
+    }
+}
+
 /*********************************************
  * Task Region
  */
@@ -323,6 +478,120 @@ void outdoor_temp_task(void *arg)
     end_task(arg);
 }
 
+void device_status_task(void *arg)
+{
+    uint8_t network = (uintptr_t)arg;
+    if (!valid_network(network))
+    {
+        end_task(NULL); // arg is not a pointer
+    }
+
+    set_status(MQTT_STATUS_STATUS);
+    uint16_t device_mask = get_network_mask(network);
+    x3d_read_data_t data = {
+            .network  = network,
+            .transfer = device_mask,
+            .target   = device_mask,
+    };
+
+    if (no_of_devices(device_mask))
+    {
+        x3d_device_t *devices = get_devices_list(network);
+        read_reg_to_devices(devices, &data, X3D_REG_ROOM_TEMP);
+        read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_STATUS);
+        read_reg_to_devices(devices, &data, X3D_REG_ERROR_STATUS);
+        read_reg_to_devices(devices, &data, X3D_REG_ON_OFF);
+        read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_DEFROST);
+        read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_NIGHT_DAY);
+        read_reg_to_devices(devices, &data, X3D_REG_ATT_POWER);
+
+        for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
+        {
+            publish_device(&devices[i], network, i, false);
+        }
+    }
+
+    end_task(NULL); // arg is not a pointer
+}
+
+void device_status_short_task(void *arg)
+{
+    uint8_t network = (uintptr_t)arg;
+    if (!valid_network(network))
+    {
+        end_task(NULL); // arg is not a pointer
+    }
+
+    set_status(MQTT_STATUS_STATUS);
+    uint16_t device_mask = get_network_mask(network);
+    x3d_read_data_t data = {
+            .network  = network,
+            .transfer = device_mask,
+            .target   = device_mask,
+    };
+
+    if (no_of_devices(device_mask))
+    {
+        x3d_device_t *devices = get_devices_list(network);
+        read_reg_to_devices(devices, &data, X3D_REG_ROOM_TEMP);
+        read_reg_to_devices(devices, &data, X3D_REG_SETPOINT_STATUS);
+        read_reg_to_devices(devices, &data, X3D_REG_ERROR_STATUS);
+        read_reg_to_devices(devices, &data, X3D_REG_ON_OFF);
+
+        for (int i = 0; i < X3D_MAX_NET_DEVICES; i++)
+        {
+            publish_device(&devices[i], network, i, false);
+        }
+    }
+
+    end_task(NULL); // arg is not a pointer
+}
+
+void network_pairing_task(void *arg)
+{
+    task_arg_t *args = arg;
+    if (!valid_network(args->network))
+    {
+        free(args->args);
+        end_task(args);
+    }
+
+    x3d_device_type_t type = x3d_device_type_from_string(args->args);
+    if (type == X3D_DEVICE_TYPE_NONE)
+    {
+        free(args->args);
+        end_task(args);
+    }
+
+    x3d_pairing_data_t data = {
+            .network  = args->network,
+            .transfer = get_network_mask(args->network),
+    };
+
+    if (no_of_devices(data.transfer) >= X3D_MAX_NET_DEVICES)
+    {
+        free(args->args);
+        end_task(args);
+    }
+
+    // OPTIONAL: depending on device type could be diffrent pairing proc
+
+    set_status(MQTT_STATUS_PAIRING);
+    int target_device_no = x3d_pairing_proc(&data);
+    if (target_device_no == -1)
+    {
+        set_status(MQTT_STATUS_PAIRING_FAILED);
+    }
+    else
+    {
+        set_status(MQTT_STATUS_PAIRING_SUCCESS);
+        create_device_data(data.network, type, target_device_no);
+    }
+
+    free(args->args);
+    end_task(args);
+}
+
 void reading_task(void *arg)
 {
     task_arg_t *args = arg;
@@ -369,6 +638,83 @@ void reading_task(void *arg)
     free(json_string);
 
     free(args->args);
+    end_task(arg);
+}
+
+void device_disable_task(void *arg)
+{
+    task_arg_t *args = arg;
+    x3d_write_data_t data = {
+            .network  = args->network,
+            .transfer = get_network_mask(args->network),
+            .target   = args->target_mask,
+            .values   = {0},
+    };
+
+    if (data.transfer == 0 || (data.transfer & data.target) == 0)
+    {
+        end_task(arg);
+    }
+
+    // switch device off
+    set_reg_same(&data, X3D_REG_ON_OFF, X3D_REG_ON_OFF_OFF);
+    x3d_writing_proc(&data);
+
+    // set time 0
+    set_reg_same(&data, X3D_REG_MODE_TIME, 0);
+    x3d_writing_proc(&data);
+
+    // set time 0
+    set_reg_same(&data, X3D_REG_SET_MODE_TEMP, 0);
+    x3d_writing_proc(&data);
+
+    end_task(arg);
+}
+
+void unpairing_task(void *arg)
+{
+    task_arg_t *args = arg;
+
+    x3d_unpairing_data_t data = {
+            .network  = args->network,
+            .target   = args->target_mask,
+            .transfer = get_network_mask(args->network),
+    };
+
+    if (data.transfer == 0 || (data.transfer & data.target) == 0)
+    {
+        end_task(arg);
+    }
+
+    set_status(MQTT_STATUS_UNPAIRING);
+    x3d_unpairing_proc(&data);
+
+    remove_device_data(data.network, data.target);
+
+    end_task(arg);
+}
+
+void device_pairing_task(void *arg)
+{
+    task_arg_t *args = arg;
+
+    x3d_write_data_t data = {
+            .network       = args->network,
+            .transfer      = get_network_mask(args->network),
+            .target        = args->target_mask,
+            .register_high = X3D_REG_H(X3D_REG_START_PAIR),
+            .register_low  = X3D_REG_L(X3D_REG_START_PAIR),
+            .values        = {0},
+    };
+
+    if (data.transfer == 0 || (data.transfer & data.target) == 0)
+    {
+        end_task(arg);
+    }
+
+    set_status(MQTT_STATUS_PAIRING);
+    x3d_writing_proc(&data);
+
     end_task(arg);
 }
 
@@ -422,17 +768,22 @@ void handle_device_command(char *data)
  */
 void handle_network_command(uint8_t network, char *data)
 {
-    if (strcmp(data, COMMAND_PAIR) == 0)
+    if (strcmp(data, COMMAND_PAIR_NET) == 0)
     {
-
+        task_arg_t *args = calloc(1, sizeof(task_arg_t));
+        args->network = network;
+        args->args = strdup(&data[strlen(COMMAND_PAIR_NET)]);
+        execute_task(network_pairing_task, "network_pairing_task", 4096, args);
     }
     else if (strcmp(data, COMMAND_DEVICE_STATUS) == 0)
     {
-
+        uintptr_t network_arg = network;
+        execute_task(device_status_task, "device_status_task", 4096, (uintptr_t *)network_arg);
     }
     else if (strcmp(data, COMMAND_DEVICE_STATUS_SHORT) == 0)
     {
-
+        uintptr_t network_arg = network;
+        execute_task(device_status_short_task, "device_status_short_task", 4096, (uintptr_t *)network_arg);
     }
 }
 
@@ -445,12 +796,17 @@ void handle_network_command(uint8_t network, char *data)
  */
 void handle_dest_command(uint8_t network, uint16_t target_mask, char *data)
 {
+    task_arg_t *args = calloc(1, sizeof(task_arg_t));
+    args->network = network;
+    args->target_mask = target_mask;
+
     if (strcmp(data, COMMAND_PAIR) == 0)
     {
         if (no_of_devices(target_mask) > 1)
         {
             return;
         }
+        execute_task(device_pairing_task, "device_pairing_task", 2048, args);
     }
     else if (strcmp(data, COMMAND_UNPAIR) == 0)
     {
@@ -458,26 +814,30 @@ void handle_dest_command(uint8_t network, uint16_t target_mask, char *data)
         {
             return;
         }
+        execute_task(unpairing_task, "unpairing_task", 2048, args);
     }
     else if (strncmp(data, COMMAND_READ, strlen(COMMAND_READ)) == 0)
     {
-        task_arg_t *args = calloc(1, sizeof(task_arg_t));
-        args->network = network;
-        args->target_mask = target_mask;
         args->args = strdup(&data[strlen(COMMAND_READ)]);
         execute_task(reading_task, "reading_task", 4096, args);
     }
     else if (strncmp(data, COMMAND_WRITE, strlen(COMMAND_WRITE)) == 0)
     {
-
+        args->args = strdup(&data[strlen(COMMAND_WRITE)]);
+        execute_task(writing_task, "writing_task", 4096, args);
     }
     else if (strncmp(data, COMMAND_ENABLE, strlen(COMMAND_ENABLE)) == 0)
     {
-
+        args->args = strdup(&data[strlen(COMMAND_ENABLE)]);
+        free(args);
     }
     else if (strcmp(data, COMMAND_DISABLE) == 0)
     {
-
+        execute_task(device_disable_task, "device_disable_task", 2048, args);
+    }
+    else
+    {
+        free(args);
     }
 }
 

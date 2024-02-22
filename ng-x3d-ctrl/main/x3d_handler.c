@@ -183,9 +183,8 @@ void x3d_unpairing_proc(x3d_unpairing_data_t *data)
     uint8_t ext_header[]  = {0x98, X3D_HEADER_EXT_NONE};
     uint8_t payload_index = x3d_prepare_message(data->network, X3D_MSG_TYPE_STANDARD, 0, 0x05, ext_header, sizeof(ext_header));
     x3d_set_message_retrans(x3d_buffer, payload_index, X3D_RETRY_COUNT_DEFAULT - 1, data->transfer);
-    uint16_t target_mask = 1 << (data->target & 0x0f);
 
-    x3d_set_unpair_device(x3d_buffer, payload_index, target_mask);
+    x3d_set_unpair_device(x3d_buffer, payload_index, data->target);
 
     // transfer buffer
     x3d_transmit();
@@ -194,7 +193,7 @@ void x3d_unpairing_proc(x3d_unpairing_data_t *data)
     vTaskDelay(pdMS_TO_TICKS(no_of_devices(data->transfer) * X3D_PER_DEVICE_WAIT_SLOTS_DEFAULT * X3D_MSG_DELAY_MS));
 
     // remove device from transfer mask
-    data->transfer &= ~(target_mask);
+    data->transfer &= ~(data->target);
 }
 
 /***********************************************

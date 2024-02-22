@@ -25,7 +25,7 @@ typedef struct {
 typedef struct {
     uint8_t network;
     uint16_t transfer;
-    uint8_t target;
+    uint16_t target;
 } x3d_unpairing_data_t;
 
 /// @brief Task processing data for register read
