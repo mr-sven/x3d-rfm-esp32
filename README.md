@@ -53,4 +53,4 @@ The ESP sub projects based on ESP-IDF 5.x. Each project folder contains a vscode
 * [x3d-raw-monitor](x3d-raw-monitor) - Init the SX1231 chip with correct config for the X3D protocol and dumps packet hex over serial.
 * [x3d-raw-mqtt-publish](x3d-raw-mqtt-publish) - Publishes Raw packet binary over mqtt.
 * [x3d-controller](x3d-controller) - ESP32 Based X3D Controller Module Project. **depricated**
-  * new controller version is currently developed in a branch
+* [ng-x3d-ctrl](ng-x3d-ctrl) - Next Gen ESP32 Based X3D Controller Module Project.
