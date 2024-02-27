@@ -824,7 +824,8 @@ void handle_dest_command(uint8_t network, uint16_t target_mask, char *data)
     else if (strncmp(data, COMMAND_WRITE, strlen(COMMAND_WRITE)) == 0)
     {
         args->args = strdup(&data[strlen(COMMAND_WRITE)]);
-        execute_task(writing_task, "writing_task", 4096, args);
+        //execute_task(writing_task, "writing_task", 4096, args);
+        free(args);
     }
     else if (strncmp(data, COMMAND_ENABLE, strlen(COMMAND_ENABLE)) == 0)
     {

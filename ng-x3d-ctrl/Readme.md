@@ -19,9 +19,9 @@ Destination devices can be addressed via suffix `../<net>/dest/<0..15,...>`. Dep
 
 List of subscribed topics:
 
-* `device/x3d/<device-id>/cmd` -> [MQTT Device Commands](#mqtt-device-commands)
-* `device/x3d/<device-id>/<net>/cmd`
-* `device/x3d/<device-id>/<net>/dest/<0..15,...>/cmd`
+* `device/x3d/<device-id>/cmd` -> [MQTT Device commands](#mqtt-device-commands)
+* `device/x3d/<device-id>/<net>/cmd` -> [MQTT Network commands](#mqtt-network-commands)
+* `device/x3d/<device-id>/<net>/dest/<0..15,...>/cmd` -> [MQTT destination Device commands](#mqtt-destination-device-commands)
 
 List of publish topics:
 * `device/x3d/<device-id>/status`
@@ -45,7 +45,10 @@ List of publish topics:
 
 `/device/x3d/<device-id>/<net>/dest/<0..15>/status`
 
-## MQTT device commands
+## MQTT Device commands
+
+Topic:
+* `device/x3d/<device-id>/cmd`
 
 ### Reset command
 
@@ -64,7 +67,49 @@ Publish outdoor temperature to all actors so that the thermostates can display i
 * Status
   * `temp` - device is in temp sending
 
-## MQTT destination device Commands
+## MQTT Network commands
+
+Topic:
+* `device/x3d/<device-id>/net-4/cmd`
+* `device/x3d/<device-id>/net-5/cmd`
+
+### Pair command
+
+The specified device is switched to pairing mode and is not responding anymore until timeout or device pairing is done.
+
+* Payload: `pair <device-type>`
+  * `<device-type>` - type of the device to pair
+    * `rf66xx` RF 66XX temp actor
+* Status
+  * `pairing` - device is in pairing
+  * `pairing failed` - pairing has failed or no device to pair found
+  * `pairing success` - new device paired
+
+### Device status command
+
+This topic requests the status of the current devices.
+
+* Payload: `device-status`
+* Status
+  * `status` - device is in status reading process
+
+Response is published to the corresponding device status topics.
+
+### Device status short command
+
+This topic requests the status of the current devices. Reads only minimal no. registers from device to reduce RF traffic.
+
+* Payload: `device-status-short`
+* Status
+  * `status` - device is in status reading process
+
+Response is published to the corresponding device status topics.
+
+## MQTT destination Device commands
+
+Topic:
+* `device/x3d/<device-id>/net-4/dest/<0..15,...>/cmd`
+* `device/x3d/<device-id>/net-5/dest/<0..15,...>/cmd`
 
 ### Pair command
 
@@ -91,6 +136,41 @@ Reads registers from devices and publishes the result to `device/x3d/<device-id>
   * `<registerLow>` - register low number
 * Status
   * `reading` - device is in reading
+
+### Write command
+
+> TODO
+
+Writes registers to devices.
+
+* Payload: `write <registerHigh> <registerLow>   `
+  * `<registerHigh>` - register high number
+  * `<registerLow>` - register low number
+* Status
+  * `writing` - device is in reading
+
+### Enable command
+
+> TODO
+
+* Payload: `enable <mode> <params?>`
+  * `<mode>` - select active mode
+  * `<params>` - optional: list of parameters required for specific mode
+
+Possible mode values:
+
+* `day` - activates day mode with configured temp, no params
+* `night` - activates night mode with configured temp, no params
+* `defrost` - activates defrost mode with configured temp, no params
+* `custom` - activates custom temp mode, param: temp
+  * param temperature in °C with dot as floatingpoint separator, ex.: `19.5`
+* `timed` - activates timed temp mode, param: temp and time
+  * param temperature in °C with dot as floatingpoint separator, ex.: `19.5`
+  * param time in minutes
+
+The actor does not differ between Party and Holiday mode. In the end its the time in minutes to stay in that mode.
+
+The modes `day`, `night` and `defrost` will only be activated if full device status read the specified devices temperature parameters.
 
 ### Disable command
 
