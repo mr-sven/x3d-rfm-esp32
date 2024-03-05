@@ -46,6 +46,16 @@ typedef struct {
     char *args;
 } task_arg_t;
 
+// type of X3D message
+typedef enum {
+    ENABLE_UNKNOWN = -1,
+    ENABLE_DAY = 0,
+    ENABLE_NIGHT = 1,
+    ENABLE_DEFROST = 2,
+    ENABLE_CUSTOM = 3,
+    ENABLE_TIMED = 4,
+} enable_mode_t;
+
 static const char JSON_ACTION[] =                    "action";
 static const char JSON_NETWORK[] =                   "net";
 static const char JSON_ACK[] =                       "ack";
@@ -109,6 +119,16 @@ static uint16_t net_4_transfer_mask = 0;
 static uint16_t net_5_transfer_mask = 0;
 
 TaskHandle_t processing_task_handle = NULL;
+
+enable_mode_t str_to_enabe_mode(const char *str)
+{
+    if (strcmp(str, "day") == 0) { return ENABLE_DAY; }
+    else if (strcmp(str, "night") == 0) { return ENABLE_NIGHT; }
+    else if (strcmp(str, "defrost") == 0) { return ENABLE_DEFROST; }
+    else if (strcmp(str, "custom") == 0) { return ENABLE_CUSTOM; }
+    else if (strcmp(str, "timed") == 0) { return ENABLE_TIMED; }
+    return ENABLE_UNKNOWN;
+}
 
 static inline int valid_network(uint8_t network)
 {
@@ -671,6 +691,118 @@ void device_disable_task(void *arg)
     end_task(arg);
 }
 
+void device_enable_task(void *arg)
+{
+    task_arg_t *args = arg;
+
+    char *pArg = NULL;
+    double temp;
+    uint16_t outValue;
+    uint16_t time = 0;
+    enable_mode_t mode = str_to_enabe_mode(strtok_r(args->args, " ", &pArg));
+    x3d_device_t *devices = get_devices_list(args->network);
+    x3d_write_data_t data = {
+            .network  = args->network,
+            .transfer = get_network_mask(args->network),
+            .target   = get_target_mask_by_feature(devices, X3D_DEVICE_FEATURE_TEMP_ACTOR) & args->target_mask,
+            .register_high = X3D_REG_H(X3D_REG_SET_MODE_TEMP),
+            .register_low  = X3D_REG_L(X3D_REG_SET_MODE_TEMP),
+            .values   = {0},
+    };
+
+    if (data.transfer == 0 || (data.transfer & data.target) == 0)
+    {
+        free(args->args);
+        end_task(arg);
+    }
+
+    // prepare mode and setpoint register
+    switch (mode)
+    {
+        case ENABLE_DAY:
+        case ENABLE_NIGHT:
+        case ENABLE_DEFROST:
+            for (int i = 0; i < X3D_MAX_PAYLOAD_DATA_FIELDS; i++)
+            {
+                if (data.target & (1 << i))
+                {
+                    uint8_t set_point_day = 0;
+                    uint8_t set_point_night = 0;
+                    uint8_t set_point_defrost = 0;
+
+                    switch (devices[i].type)
+                    {
+                        case X3D_DEVICE_TYPE_RF66XX:
+                            set_point_day = ((x3d_rf66xx_t *)devices[i].data)->set_point_day;
+                            set_point_night = ((x3d_rf66xx_t *)devices[i].data)->set_point_night;
+                            set_point_defrost = ((x3d_rf66xx_t *)devices[i].data)->set_point_defrost;
+                            break;
+                        default:
+                            break;
+                    }
+
+                    switch (mode)
+                    {
+                        case ENABLE_DAY:
+                            data.values[i] = set_point_day;
+                            break;
+                        case ENABLE_NIGHT:
+                            data.values[i] = set_point_night;
+                            break;
+                        case ENABLE_DEFROST:
+                            data.values[i] = set_point_defrost | X3D_FLAG_DEFROST;
+                            break;
+                        default: // is not reached
+                            break;
+                    }
+                }
+            }
+            break;
+
+        case ENABLE_CUSTOM:
+            temp = strtod(pArg, &pArg);
+            if (temp == 0)
+            {
+                end_task(arg);
+            }
+
+            // set mode and temperature
+            outValue = (uint16_t)(temp * 2.0);
+            set_reg_same(&data, X3D_REG_SET_MODE_TEMP, outValue);
+            break;
+
+        case ENABLE_TIMED:
+            temp = strtod(pArg, &pArg);
+            time = strtoul(pArg, &pArg, 10);
+            if (temp == 0 || time == 0)
+            {
+                end_task(arg);
+            }
+
+            // set mode and temperature
+            outValue = (uint16_t)(temp * 2.0) | X3D_FLAG_TIMED;
+            set_reg_same(&data, X3D_REG_SET_MODE_TEMP, outValue);
+            break;
+
+        case ENABLE_UNKNOWN:
+        default:
+            end_task(arg);
+            break;
+    }
+    // write setpoint and mode
+    x3d_writing_proc(&data);
+
+    // set time for timed mode or 0 for other modes
+    set_reg_same(&data, X3D_REG_MODE_TIME, time);
+    x3d_writing_proc(&data);
+
+    // switch device on
+    set_reg_same(&data, X3D_REG_ON_OFF, X3D_REG_ON_OFF_ON);
+    x3d_writing_proc(&data);
+
+    end_task(arg);
+}
+
 void unpairing_task(void *arg)
 {
     task_arg_t *args = arg;
@@ -717,6 +849,8 @@ void device_pairing_task(void *arg)
 
     end_task(arg);
 }
+
+
 
 /**
  * @brief Wrapper for xTaskCreate to check if a processing task is already executed
@@ -830,7 +964,7 @@ void handle_dest_command(uint8_t network, uint16_t target_mask, char *data)
     else if (strncmp(data, COMMAND_ENABLE, strlen(COMMAND_ENABLE)) == 0)
     {
         args->args = strdup(&data[strlen(COMMAND_ENABLE)]);
-        free(args);
+        execute_task(device_enable_task, "device_enable_task", 2048, args);
     }
     else if (strcmp(data, COMMAND_DISABLE) == 0)
     {
