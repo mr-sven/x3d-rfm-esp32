@@ -143,19 +143,24 @@ Reads registers from devices and publishes the result to `device/x3d/<device-id>
 
 Writes registers to devices.
 
-* Payload: `write <registerHigh> <registerLow>   `
+* Payload: `write <registerHigh> <registerLow> <value> [<value>]..`
   * `<registerHigh>` - register high number
   * `<registerLow>` - register low number
+  * `<value>` - the value to write
 * Status
   * `writing` - device is in reading
 
-### Enable command
+If only a single value is submittet, then all target devices receive the same value. Otherwise the number of values must match the number of target devices.
 
-> TODO
+
+### Enable command
 
 * Payload: `enable <mode> <params?>`
   * `<mode>` - select active mode
   * `<params>` - optional: list of parameters required for specific mode
+
+* Required destination feature
+  * `TEMP_ACTOR`
 
 Possible mode values:
 
