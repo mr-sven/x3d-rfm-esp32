@@ -88,8 +88,8 @@ static const char MQTT_STATUS_READING[] =            "reading";
 static const char MQTT_STATUS_PAIRING[] =            "pairing";
 static const char MQTT_STATUS_PAIRING_SUCCESS[] =    "pairing success";
 static const char MQTT_STATUS_PAIRING_FAILED[] =     "pairing failed";
-/*
-static const char MQTT_STATUS_WRITING[] =            "writing"; */
+
+static const char MQTT_STATUS_WRITING[] =            "writing";
 static const char MQTT_STATUS_UNPAIRING[] =          "unpairing";
 static const char MQTT_STATUS_STATUS[] =             "status";
 static const char MQTT_STATUS_TEMP[] =               "temp";
@@ -661,6 +661,71 @@ void reading_task(void *arg)
     end_task(arg);
 }
 
+void writing_task(void *arg)
+{
+    task_arg_t *args = arg;
+
+    char *pArg = NULL, *pEnd = NULL;
+    uint8_t register_high = strtoul(args->args, &pArg, 10);
+    uint8_t register_low  = strtoul(pArg, &pArg, 10);
+
+    x3d_write_data_t data = {
+            .network       = args->network,
+            .transfer      = get_network_mask(args->network),
+            .target        = args->target_mask,
+            .register_high = register_high,
+            .register_low  = register_low,
+            .values        = {0}
+    };
+
+    if (data.transfer == 0 || (data.transfer & data.target) == 0)
+    {
+        free(args->args);
+        end_task(arg);
+    }
+
+    uint16_t curr_value = 0;
+    for (int i = 0; i < X3D_MAX_PAYLOAD_DATA_FIELDS; i++)
+    {
+        if (args->target_mask & (1 << i))
+        {
+            uint16_t tmp_val = strtoul(pArg, &pEnd, 10);
+            if (pArg != pEnd)
+            {
+                curr_value = tmp_val;
+                pArg = pEnd;
+            }
+            data.values[i] = curr_value;
+        }
+    }
+
+    set_status(MQTT_STATUS_WRITING);
+    x3d_standard_msg_payload_t *payload = x3d_writing_proc(&data);
+
+    ESP_LOGI(TAG, "write register %02x - %02x to %04x", payload->reg_high, payload->reg_low, payload->target_ack);
+
+    int data_slots = ((payload->action & 0xf0) >> 4) + 1;
+    cJSON *root    = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, JSON_ACTION, "write");
+    cJSON_AddNumberToObject(root, JSON_NETWORK, data.network);
+    cJSON_AddNumberToObject(root, JSON_ACK, payload->target_ack);
+    cJSON_AddNumberToObject(root, JSON_REGISTER_HIGH, payload->reg_high);
+    cJSON_AddNumberToObject(root, JSON_REGISTER_LOW, payload->reg_low);
+    cJSON *values = cJSON_AddArrayToObject(root, JSON_VALUES);
+    for (int i = 0; i < data_slots; i++)
+    {
+        cJSON_AddItemToArray(values, cJSON_CreateNumber(payload->data[i]));
+    }
+    char *json_string = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+
+    mqtt_publish_subtopic(MQTT_TOPIC_RESULT, json_string, strlen(json_string), 0, 0);
+    free(json_string);
+
+    free(args->args);
+    end_task(arg);
+}
+
 void device_disable_task(void *arg)
 {
     task_arg_t *args = arg;
@@ -958,8 +1023,7 @@ void handle_dest_command(uint8_t network, uint16_t target_mask, char *data)
     else if (strncmp(data, COMMAND_WRITE, strlen(COMMAND_WRITE)) == 0)
     {
         args->args = strdup(&data[strlen(COMMAND_WRITE)]);
-        //execute_task(writing_task, "writing_task", 4096, args);
-        free(args);
+        execute_task(writing_task, "writing_task", 4096, args);
     }
     else if (strncmp(data, COMMAND_ENABLE, strlen(COMMAND_ENABLE)) == 0)
     {

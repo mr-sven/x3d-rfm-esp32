@@ -15,7 +15,19 @@
     "x3d.h": "c",
     "rfm.h": "c",
     "x3d_handler.h": "c",
-    "ota.h": "c"
+    "ota.h": "c",
+    "array": "c",
+    "string": "c",
+    "string_view": "c",
+    "span": "c",
+    "chrono": "c",
+    "deque": "c",
+    "list": "c",
+    "unordered_map": "c",
+    "vector": "c",
+    "format": "c",
+    "initializer_list": "c",
+    "regex": "c"
   },
   "files.exclude": {
     "**/spi_flash/sim/**": true
