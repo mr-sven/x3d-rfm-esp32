@@ -967,7 +967,7 @@ void handle_device_command(char *data)
  */
 void handle_network_command(uint8_t network, char *data)
 {
-    if (strcmp(data, COMMAND_PAIR_NET) == 0)
+    if (strncmp(data, COMMAND_PAIR_NET, strlen(COMMAND_PAIR_NET)) == 0)
     {
         task_arg_t *args = calloc(1, sizeof(task_arg_t));
         args->network = network;
