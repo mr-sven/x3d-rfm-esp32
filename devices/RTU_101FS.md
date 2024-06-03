@@ -29,9 +29,11 @@ The TPs GND, VCC, RxD0, TxD0 and Reset are accessible via back cover, so I assum
 * Pin 29: Additional backlight color (Some devices are described with backlight color in operation mode)
 * Pin 31 - 70: are fully used for the LCD Driver. COM0 - COM3, COM4/SEG0 - COM7/SEG3 and SEG4-SEG34
 * Pin 77: ANI10 Connected to Thermal Resistor
+* Pin 84 - 87: P20 - P23 used for button output
+  * In general all pins are at low level if the interupt INTP11 is detected or the device is in Active mode, the buttons are pulled up on a loop to detect the Pressed button.
 * Pin 80 - 83: P24 - P27 used as rotary encoder inputs
 * Pin 88: P130 used to control the encoder power
-  * This pin is raised once per second for ms  to check the rotary encoder position and save power.
+  * This pin is raised once per second for 4µs to check the rotary encoder position and save power.
 * Pin 91: PCLBUZ0 connected to the buzzer
 * Pin 92 - 100: connected to SX1211
   * INTP2 - IRQ_0

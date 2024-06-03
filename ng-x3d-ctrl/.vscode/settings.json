@@ -15,7 +15,7 @@
     "x3d.h": "c",
     "rfm.h": "c",
     "x3d_handler.h": "c",
-    "ota.h": "c"
+    "ota.h": "c",
   },
   "files.exclude": {
     "**/spi_flash/sim/**": true
