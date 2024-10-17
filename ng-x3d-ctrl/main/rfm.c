@@ -28,6 +28,8 @@
 #define RFM_PIN_NUM_IRQ  GPIO_NUM_4
 #define RFM_SPI_HOST     SPI3_HOST
 
+#define MAX_TRANSFER_TIMEOUT  20
+
 static const char *TAG = "RFM";
 
 static QueueHandle_t rfm_evt_queue       = NULL;
@@ -46,7 +48,7 @@ static void IRAM_ATTR rfm_isr_handler(void *arg)
     else if (sx1231_get_mode(sx1231_handle) == SX1231_MODE_TRANSMITTER && transmit_task_handle != NULL)
     {
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        vTaskNotifyGiveIndexedFromISR(transmit_task_handle, 0, &xHigherPriorityTaskWoken);
+        vTaskNotifyGiveFromISR(transmit_task_handle, &xHigherPriorityTaskWoken);
         transmit_task_handle = NULL;
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
@@ -163,7 +165,7 @@ esp_err_t rfm_transfer(uint8_t *buffer, size_t size)
 {
     transmit_task_handle = xTaskGetCurrentTaskHandle();
     esp_err_t res        = sx1231_transmit(sx1231_handle, buffer, size);
-    ulTaskNotifyTakeIndexed(0, pdFALSE, portMAX_DELAY);
+    ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(MAX_TRANSFER_TIMEOUT));
     sx1231_mode(sx1231_handle, SX1231_MODE_STANDBY);
     return res;
 }
