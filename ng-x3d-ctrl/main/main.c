@@ -233,9 +233,9 @@ void publish_device(x3d_device_t *device, uint8_t network, uint8_t id, bool forc
             return;
     }
 
-    ESP_LOGI(TAG, "topic: %s", topic);
     if (root != NULL)
     {
+        ESP_LOGI(TAG, "topic: %s", topic);
         char *json_string = cJSON_PrintUnformatted(root);
         cJSON_Delete(root);
         mqtt_publish(topic, json_string, strlen(json_string), 0, 1);
@@ -267,6 +267,7 @@ int mqtt_publish_subtopic(const char *subtopic, const char *data, int len, int q
  */
 void set_status(const char *status)
 {
+    ESP_LOGI(TAG, "Status: %s", status);
     mqtt_publish(mqtt_topic_status, status, strlen(status), 0, 1);
 }
 
@@ -1180,6 +1181,19 @@ void mqtt_connected(void)
     led_color(0, 20, 0);
 }
 
+static void taskCheckExecute(TimerHandle_t pxTimer)
+{
+    if (processing_task_handle == NULL)
+    {
+        return;
+    }
+
+    eTaskState task_state = eTaskGetState(processing_task_handle);
+    ESP_LOGI(TAG, "processing task state: %d", task_state);
+}
+
+TimerHandle_t tmr;
+
 /**
  * @brief Main program entry
  *
@@ -1240,4 +1254,7 @@ void app_main(void)
 
     // start MQTT
     mqtt_app_start(mqtt_topic_status, MQTT_STATUS_OFF, strlen(MQTT_STATUS_OFF), 0, 1);
+
+    tmr = xTimerCreate("taskCheck", pdMS_TO_TICKS(30000), pdTRUE, 0, taskCheckExecute);
+    xTimerStart(tmr, 0);
 }
