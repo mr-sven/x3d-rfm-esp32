@@ -14,6 +14,7 @@
 #include "x3d_bytes.h"
 #include "x3d_proto.h"
 #include "x3d_pped.h"
+#include "x3d_rm.h"
 
 // delay between X3D messages on RF
 #define X3D_MSG_DELAY_MS 20
@@ -27,6 +28,8 @@
 #define X3D_IDX_DEVICE_ID      5
 #define X3D_IDX_NETWORK        8
 #define X3D_IDX_HEADER_PAYLOAD 9
+
+#define X3D_PAYLOAD_IDX_RETRY  0
 
 // Header flags
 #define X3D_HEADER_FLAG_NONE        0
