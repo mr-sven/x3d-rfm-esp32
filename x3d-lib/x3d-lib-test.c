@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include "x3d.h"
 
-
-#define X3D_PAIR_RESULT_RET_PIN         1
-#define X3D_PAIR_RESULT_PIN_VALID       2
-#define X3D_PAIR_RESULT_RETRANS         3
+#define X3D_PAIR_RESULT_RET_PIN   1
+#define X3D_PAIR_RESULT_PIN_VALID 2
+#define X3D_PAIR_RESULT_RETRANS   3
 
 /*
 int process_pairing_message(uint8_t* buffer, uint16_t pairingId, uint8_t * slot, uint8_t replyCnt)
@@ -53,7 +52,7 @@ void hexToBytes(const std::string& data, uint8_t* buffer)
 }
 */
 
-void print_buffer(uint8_t* buffer)
+void print_buffer(uint8_t *buffer)
 {
     int bufsize = buffer[0];
     for (int i = 0; i < bufsize; i++)
@@ -83,10 +82,10 @@ int main()
     printf("Hello World!\n");
     uint8_t buffer[64];
 
-    uint32_t deviceId = 0x123456;
-    uint8_t msgNo = 1;
-    uint16_t msgId = 0x1111;
-    int replyCnt = 4;
+    uint32_t deviceId         = 0x12be3a;
+    uint8_t msgNo             = 1;
+    uint16_t msgId            = 0x1111;
+    int replyCnt              = 4;
     uint16_t transferSlotMask = 0x0000;
 
     uint16_t targetSlotMask = 0b0000000000000000;
@@ -112,24 +111,23 @@ int main()
     printf("%d\n", no_of_devices(targetSlotMask));
     printf("%d\n", get_lowest_zerobit(targetSlotMask));
 
-
-
-/*
+    //*
     x3d_init_message(buffer, deviceId, 0x00);
 
     uint16_t msg_no = 1;
-    uint16_t var = x3d_enc_msg_id(&msg_no, deviceId);
+    uint16_t var    = x3d_enc_msg_id(&msg_no, deviceId);
     printf("%04x\n", var);
+    var = 0xcd2a;
 
     var = x3d_dec_msg_id(var, deviceId);
-    printf("%04x\n", var);
+    printf("dd %04x\n", var);
 
     var = x3d_enc_msg_id(&msg_no, deviceId);
     printf("%04x\n", var);
 
     var = x3d_dec_msg_id(var, deviceId);
     printf("%04x\n", var);
-*/
+    //*/
     /* Pairing messages
     uint8_t extHeader[] = {0x98, 0x00};
     int payloadIndex = x3d_prepare_message_header(buffer, &msgNo, X3D_MSG_TYPE_PAIRING, 0, 0x85, extHeader, sizeof(extHeader), msgId);
@@ -165,50 +163,50 @@ int main()
     //x3d_set_register_write_same(buffer, payloadIndex, targetSlotMask, 0x16, 0x11, 0xaaaa);
     x3d_set_register_write(buffer, payloadIndex, targetSlotMask, 0x16, 0x11, data);
     // */
-/*
-    do
+    /*
+        do
+        {
+            x3d_set_message_retrans(buffer, payloadIndex, replyCnt, transferSlotMask);
+            x3d_set_crc(buffer);
+            print_buffer(buffer);
+            replyCnt--;
+
+        } while (replyCnt >= 0);
+    */
+
+    /*
+
+std::string line;
+std::ifstream infile("data.txt");
+
+uint16_t pairId = 0x1234;
+uint8_t slot = 0;
+
+while (std::getline(infile, line))
+{
+    if (line.length() > 128)
     {
-        x3d_set_message_retrans(buffer, payloadIndex, replyCnt, transferSlotMask);
-        x3d_set_crc(buffer);
-        print_buffer(buffer);
-        replyCnt--;
-
-    } while (replyCnt >= 0);
-*/
-
-        /*
-
-    std::string line;
-    std::ifstream infile("data.txt");
-
-    uint16_t pairId = 0x1234;
-    uint8_t slot = 0;
-
-    while (std::getline(infile, line))
+        continue;
+    }
+    hexToBytes(line, buffer);
+    int res = process_pairing_message(buffer, pairId, &slot, 1);
+    switch (res)
     {
-        if (line.length() > 128)
-        {
-            continue;
-        }
-        hexToBytes(line, buffer);
-        int res = process_pairing_message(buffer, pairId, &slot, 1);
-        switch (res)
-        {
-        case X3D_PAIR_RESULT_PIN_VALID:
-            pairId = 0;
-            break;
-        // debug reset pair
-        case X3D_PAIR_RESULT_RETRANS:
-            pairId = 0x1234;
-            slot = 0;
-            break;
+    case X3D_PAIR_RESULT_PIN_VALID:
+        pairId = 0;
+        break;
+    // debug reset pair
+    case X3D_PAIR_RESULT_RETRANS:
+        pairId = 0x1234;
+        slot = 0;
+        break;
 
-        }
+    }
 
-        for (int i = 0; i < 64; i++)
-        {
-            std::cout << " " << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i];
-        }
-        std::cout << std::dec << std::endl;
-    }*/
+    for (int i = 0; i < 64; i++)
+    {
+        std::cout << " " << std::hex << std::setfill('0') << std::setw(2) << (int)buffer[i];
+    }
+    std::cout << std::dec << std::endl;
+}*/
 }
