@@ -46,11 +46,9 @@ void test_x3d_proto_parse_verify_msg_no_payload_no_header_payload_no_magic(void)
     assert(msg->msg_header.device_id == 0x123456);
     assert(msg->msg_header.net == 2);
     assert(msg->header_payload_length == 1);
-    assert(msg->header_payload != NULL);
     assert(msg->header_payload[0] == 0x85);
     assert(msg->header_magic == 0);
     assert(msg->payload_length == 0);
-    assert(msg->payload == NULL);
 
     delete_msg(msg);
 }
@@ -70,13 +68,11 @@ void test_x3d_proto_parse_verify_msg_no_payload_no_magic(void)
     assert(msg->msg_header.device_id == 0x123456);
     assert(msg->msg_header.net == 2);
     assert(msg->header_payload_length == 3);
-    assert(msg->header_payload != NULL);
     assert(msg->header_payload[0] == 0x85);
     assert(msg->header_payload[1] == 0x98);
     assert(msg->header_payload[2] == 0x00);
     assert(msg->header_magic == 26590); // it could be a magic number
     assert(msg->payload_length == 0);
-    assert(msg->payload == NULL);
 
     delete_msg(msg);
 }
@@ -96,13 +92,11 @@ void test_x3d_proto_parse_verify_msg_no_payload_no_header_payload(void)
     assert(msg->msg_header.device_id == 0x123456);
     assert(msg->msg_header.net == 2);
     assert(msg->header_payload_length == 3);
-    assert(msg->header_payload != NULL);
     assert(msg->header_payload[0] == 0x85);
     assert(msg->header_payload[1] == 0x8C);
     assert(msg->header_payload[2] == 0xFE);
     assert(msg->header_magic == 1);
     assert(msg->payload_length == 0);
-    assert(msg->payload == NULL);
 
     delete_msg(msg);
 }
@@ -122,7 +116,6 @@ void test_x3d_proto_parse_verify_msg_no_payload(void)
     assert(msg->msg_header.device_id == 0x123456);
     assert(msg->msg_header.net == 2);
     assert(msg->header_payload_length == 5);
-    assert(msg->header_payload != NULL);
     assert(msg->header_payload[0] == 0x85);
     assert(msg->header_payload[1] == 0x98);
     assert(msg->header_payload[2] == 0x00);
@@ -130,7 +123,6 @@ void test_x3d_proto_parse_verify_msg_no_payload(void)
     assert(msg->header_payload[4] == 0xFE);
     assert(msg->header_magic == 1);
     assert(msg->payload_length == 0);
-    assert(msg->payload == NULL);
 
     delete_msg(msg);
 }
@@ -150,7 +142,6 @@ void test_x3d_proto_parse_verify_msg(void)
     assert(msg->msg_header.device_id == 0x123456);
     assert(msg->msg_header.net == 2);
     assert(msg->header_payload_length == 5);
-    assert(msg->header_payload != NULL);
     assert(msg->header_payload[0] == 0x85);
     assert(msg->header_payload[1] == 0x98);
     assert(msg->header_payload[2] == 0x00);
@@ -158,7 +149,6 @@ void test_x3d_proto_parse_verify_msg(void)
     assert(msg->header_payload[4] == 0xFE);
     assert(msg->header_magic == 1);
     assert(msg->payload_length == 5);
-    assert(msg->payload != NULL);
     assert(msg->payload[0] == 1);
     assert(msg->payload[1] == 2);
     assert(msg->payload[2] == 3);

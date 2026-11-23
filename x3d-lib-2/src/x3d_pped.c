@@ -9,22 +9,21 @@
  *
  */
 
-#include "x3d.h"
+#include "x3d_const.h"
 #include "x3d_bytes.h"
+#include "x3d_types.h"
+#include "x3d_proto.h"
+#include "x3d_pped.h"
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define X3D_PPED_MSG_TYPE_PAIR                0
-#define X3D_PPED_MSG_TYPE_REGISTER            5
+#define X3D_PPED_MSG_TYPE_PAIR     0
+#define X3D_PPED_MSG_TYPE_REGISTER 5
 
-#define X3D_PPED_NET_REQ                      0xc0
-#define X3D_PPED_NET_RESP                     0x04
-
-#define X3D_PPED_IDX_PAYLOAD_TARGET_DEVICE_ID 2
-#define X3D_PPED_IDX_PAYLOAD_REG              5
-#define X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD      7
+#define X3D_PPED_NET_REQ           0xc0
+#define X3D_PPED_NET_RESP          0x04
 
 void x3d_pped_pairing_req(uint8_t *buffer, x3d_context_t *ctx)
 {
@@ -34,14 +33,11 @@ void x3d_pped_pairing_req(uint8_t *buffer, x3d_context_t *ctx)
     x3d_proto_prepare_message_header(msg, &ctx->msg_no, X3D_HEADER_FLAG_NONE, 0x85, header, sizeof(header), &ctx->magic_id);
 
     msg->payload_length                 = 5;
-    msg->payload                        = calloc(1, msg->payload_length);
     msg->payload[X3D_PAYLOAD_IDX_RETRY] = 0x30 | (X3D_RETRY_MASK & 2);
     msg->payload[1]                     = 1;
     x3d_write_le_u24(0xffffff, msg->payload, X3D_PPED_IDX_PAYLOAD_TARGET_DEVICE_ID);
 
     x3d_proto_write_to_buffer(buffer, msg);
-    free(msg->header_payload);
-    free(msg->payload);
     free(msg);
 }
 
@@ -58,8 +54,6 @@ int x3d_pped_parse_pairing_req(uint8_t *buffer, uint32_t *peer_device_id, uint8_
             msg->payload_length != 5 ||
             msg->header_payload_length != 5)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -2;
     }
@@ -68,8 +62,6 @@ int x3d_pped_parse_pairing_req(uint8_t *buffer, uint32_t *peer_device_id, uint8_
             msg->header_payload[1] != 0x98 ||
             msg->payload[1] != 1)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -3;
     }
@@ -82,8 +74,6 @@ int x3d_pped_parse_pairing_req(uint8_t *buffer, uint32_t *peer_device_id, uint8_
     *peer_device_id = msg->msg_header.device_id;
     *retry_cnt      = msg->payload[X3D_PAYLOAD_IDX_RETRY] & X3D_RETRY_MASK;
     *magic_id       = msg->header_magic;
-    free(msg->header_payload);
-    free(msg->payload);
     free(msg);
     return 0;
 }
@@ -96,14 +86,11 @@ void x3d_pped_pairing_resp(uint8_t *buffer, x3d_context_t *ctx, uint32_t peer_de
     x3d_proto_prepare_message_header(msg, &ctx->msg_no, X3D_HEADER_FLAG_NONE, 0x85, header, sizeof(header), &ctx->magic_id);
 
     msg->payload_length                 = 5;
-    msg->payload                        = calloc(1, msg->payload_length);
     msg->payload[X3D_PAYLOAD_IDX_RETRY] = 0x30 | 0x08 | (X3D_RETRY_MASK & 2);
     msg->payload[1]                     = 5;
     x3d_write_le_u24(peer_device_id, msg->payload, X3D_PPED_IDX_PAYLOAD_TARGET_DEVICE_ID);
 
     x3d_proto_write_to_buffer(buffer, msg);
-    free(msg->header_payload);
-    free(msg->payload);
     free(msg);
 }
 
@@ -120,8 +107,6 @@ int x3d_pped_parse_pairing_resp(uint8_t *buffer, x3d_context_t *ctx, uint32_t *p
             msg->payload_length != 5 ||
             msg->header_payload_length != 5)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -2;
     }
@@ -130,8 +115,6 @@ int x3d_pped_parse_pairing_resp(uint8_t *buffer, x3d_context_t *ctx, uint32_t *p
             msg->header_payload[1] != 0x98 ||
             msg->payload[1] != 5)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -3;
     }
@@ -140,8 +123,6 @@ int x3d_pped_parse_pairing_resp(uint8_t *buffer, x3d_context_t *ctx, uint32_t *p
     x3d_read_le_u24(&target_device_id, msg->payload, X3D_PPED_IDX_PAYLOAD_TARGET_DEVICE_ID);
     if (target_device_id != ctx->device_id)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -4;
     }
@@ -154,8 +135,6 @@ int x3d_pped_parse_pairing_resp(uint8_t *buffer, x3d_context_t *ctx, uint32_t *p
     *peer_device_id = msg->msg_header.device_id;
     *retry_cnt      = msg->payload[X3D_PAYLOAD_IDX_RETRY] & X3D_RETRY_MASK;
     *magic_id       = msg->header_magic;
-    free(msg->header_payload);
-    free(msg->payload);
     free(msg);
     return 0;
 }
@@ -169,7 +148,6 @@ void x3d_pped_register_req(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_registe
 
     msg->payload_length = 7 + reg_data->reg_payload_length;
 
-    msg->payload                        = calloc(1, msg->payload_length);
     msg->payload[X3D_PAYLOAD_IDX_RETRY] = 0x30 | (X3D_RETRY_MASK & 2);
     msg->payload[1]                     = 0;
     reg_data->is_response               = false;
@@ -178,8 +156,6 @@ void x3d_pped_register_req(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_registe
     memcpy(&msg->payload[X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD], reg_data->reg_payload, reg_data->reg_payload_length);
 
     x3d_proto_write_to_buffer(buffer, msg);
-    free(msg->header_payload);
-    free(msg->payload);
     free(msg);
 }
 
@@ -196,8 +172,6 @@ int x3d_pped_parse_register_req(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_re
             msg->payload_length < 7 ||
             msg->header_payload_length != 5)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -2;
     }
@@ -206,8 +180,6 @@ int x3d_pped_parse_register_req(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_re
             msg->header_payload[1] != 0x98 ||
             msg->payload[1] != 0)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -3;
     }
@@ -216,8 +188,6 @@ int x3d_pped_parse_register_req(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_re
     x3d_read_le_u24(&target_device_id, msg->payload, X3D_PPED_IDX_PAYLOAD_TARGET_DEVICE_ID);
     if (target_device_id != ctx->device_id)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -4;
     }
@@ -235,13 +205,11 @@ int x3d_pped_parse_register_req(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_re
     if (msg->payload_length > X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD)
     {
         reg_data->reg_payload_length = msg->payload_length - X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD;
-        reg_data->reg_payload        = malloc(sizeof(reg_data->reg_payload_length));
         memcpy(reg_data->reg_payload, &msg->payload[X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD], reg_data->reg_payload_length);
     }
     else
     {
         reg_data->reg_payload_length = 0;
-        reg_data->reg_payload        = NULL;
     }
 
     return reg_data->is_response ? -6 : 0;
@@ -255,7 +223,6 @@ void x3d_pped_register_resp(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_regist
     x3d_proto_prepare_message_header(msg, &ctx->msg_no, X3D_HEADER_FLAG_NONE, 0x05, header, sizeof(header), &ctx->magic_id);
 
     msg->payload_length                 = 7 + reg_data->reg_payload_length;
-    msg->payload                        = calloc(1, msg->payload_length);
     msg->payload[X3D_PAYLOAD_IDX_RETRY] = 0x30 | 0x08 | (X3D_RETRY_MASK & 2);
     msg->payload[1]                     = 0;
     reg_data->is_response               = true;
@@ -264,8 +231,6 @@ void x3d_pped_register_resp(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_regist
     memcpy(&msg->payload[X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD], reg_data->reg_payload, reg_data->reg_payload_length);
 
     x3d_proto_write_to_buffer(buffer, msg);
-    free(msg->header_payload);
-    free(msg->payload);
     free(msg);
 }
 
@@ -282,8 +247,6 @@ int x3d_pped_parse_register_resp(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_r
             msg->payload_length < 7 ||
             msg->header_payload_length != 5)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -2;
     }
@@ -292,8 +255,6 @@ int x3d_pped_parse_register_resp(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_r
             msg->header_payload[1] != 0x98 ||
             msg->payload[1] != 0)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -3;
     }
@@ -302,8 +263,6 @@ int x3d_pped_parse_register_resp(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_r
     x3d_read_le_u24(&target_device_id, msg->payload, X3D_PPED_IDX_PAYLOAD_TARGET_DEVICE_ID);
     if (target_device_id != ctx->device_id)
     {
-        free(msg->header_payload);
-        free(msg->payload);
         free(msg);
         return -4;
     }
@@ -321,13 +280,11 @@ int x3d_pped_parse_register_resp(uint8_t *buffer, x3d_context_t *ctx, x3d_pped_r
     if (msg->payload_length > X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD)
     {
         reg_data->reg_payload_length = msg->payload_length - X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD;
-        reg_data->reg_payload        = malloc(sizeof(reg_data->reg_payload_length));
         memcpy(reg_data->reg_payload, &msg->payload[X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD], reg_data->reg_payload_length);
     }
     else
     {
         reg_data->reg_payload_length = 0;
-        reg_data->reg_payload        = NULL;
     }
 
     return reg_data->is_response ? 0 : -6;

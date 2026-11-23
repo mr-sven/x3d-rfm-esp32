@@ -22,7 +22,6 @@
 
 #include "rfm.h"
 #include "x3d.h"
-#include "x3d_bytes.h"
 
 #define MODE_NONE 0
 #define MODE_PAIR 1
@@ -129,7 +128,7 @@ static void device_data_task(void *arg)
     for (;;)
     {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
+        // ESP_LOG_BUFFER_HEX_LEVEL(TAG, x3d_buffer, x3d_buffer[0], ESP_LOG_INFO);
         x3d_pped_register_t reg_data;
         if (x3d_pped_parse_register_req(x3d_buffer, &x3d_ctx, &reg_data) != 0)
         {
@@ -142,7 +141,6 @@ static void device_data_task(void *arg)
 
         if (reg_data.peer_device_id != 0x68d9d7)
         {
-            free(reg_data.reg_payload);
             continue;
         }
 
@@ -155,11 +153,8 @@ static void device_data_task(void *arg)
         case 16:
             if (reg_data.reg_payload_length == 0)
             {
-                free(reg_data.reg_payload);
-
                 uint8_t data[]              = {0x30, 0x30, 0x00, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00};
                 reg_data.reg_payload_length = sizeof(data);
-                reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                 memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
                 response = true;
             }
@@ -172,11 +167,8 @@ static void device_data_task(void *arg)
                 x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
                 if (sub_reg == 0xffff)
                 {
-                    free(reg_data.reg_payload);
-
                     uint8_t data[]              = {0x03, 0x00, 0x01, 0xe5, 0x01, 0x05};
                     reg_data.reg_payload_length = sizeof(data);
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
                     response = true;
                 }
@@ -190,21 +182,15 @@ static void device_data_task(void *arg)
                 x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
                 if (sub_reg == 1)
                 {
-                    free(reg_data.reg_payload);
-
                     uint8_t data[]              = {0x01, 0x00, 0xf6, 0x22};
                     reg_data.reg_payload_length = sizeof(data);
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
                     response = true;
                 }
                 else if (sub_reg == 2)
                 {
-                    free(reg_data.reg_payload);
-
                     uint8_t data[]              = {0x02, 0x00, 0xf6, 0x27, 0xf6, 0x22};
                     reg_data.reg_payload_length = sizeof(data);
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
                     response = true;
                 }
@@ -218,20 +204,14 @@ static void device_data_task(void *arg)
                 x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
                 if (sub_reg == 1)
                 {
-                    free(reg_data.reg_payload);
-
                     reg_data.reg_payload_length = 4;
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     int data_p                  = x3d_write_le_u16(1, reg_data.reg_payload, 0);
                     data_p                      = x3d_write_le_u16(2076, reg_data.reg_payload, data_p);
                     response                    = true;
                 }
                 else if (sub_reg == 2)
                 {
-                    free(reg_data.reg_payload);
-
                     reg_data.reg_payload_length = 6;
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     int data_p                  = x3d_write_le_u16(1, reg_data.reg_payload, 0);
                     data_p                      = x3d_write_le_u16(0x8000, reg_data.reg_payload, data_p);
                     data_p                      = x3d_write_le_u16(2076, reg_data.reg_payload, data_p);
@@ -247,22 +227,18 @@ static void device_data_task(void *arg)
 
                 if (date_req == 0xf00400)
                 {
-                    free(reg_data.reg_payload);
-
                     reg_data.reg_payload_length = 3 + 3 + (8 * 4);
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
-
-                    int data_p = x3d_write_le_u24(0x100400, reg_data.reg_payload, 0);
-                    data_p     = x3d_write_le_u24(0x1a166b, reg_data.reg_payload, data_p);
-                    data_p     = x3d_write_le_u32(90000, reg_data.reg_payload, data_p);      // month 9
-                    data_p     = x3d_write_le_u32(339381, reg_data.reg_payload, data_p);     // month 10
-                    data_p     = x3d_write_le_u32(209161, reg_data.reg_payload, data_p);     // month 11
-                    data_p     = x3d_write_le_u32(120000, reg_data.reg_payload, data_p);     // month 12
-                    data_p     = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
-                    data_p     = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
-                    data_p     = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
-                    data_p     = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
-                    response   = true;
+                    int data_p                  = x3d_write_le_u24(0x100400, reg_data.reg_payload, 0);
+                    data_p                      = x3d_write_le_u24(0x1a166b, reg_data.reg_payload, data_p);
+                    data_p                      = x3d_write_le_u32(90000, reg_data.reg_payload, data_p);      // month 9
+                    data_p                      = x3d_write_le_u32(339381, reg_data.reg_payload, data_p);     // month 10
+                    data_p                      = x3d_write_le_u32(209161, reg_data.reg_payload, data_p);     // month 11
+                    data_p                      = x3d_write_le_u32(120000, reg_data.reg_payload, data_p);     // month 12
+                    data_p                      = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
+                    data_p                      = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
+                    data_p                      = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
+                    data_p                      = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
+                    response                    = true;
                 }
                 else
                 {
@@ -285,11 +261,7 @@ static void device_data_task(void *arg)
         case 784:
             if (reg_data.reg_payload_length == 3)
             {
-                free(reg_data.reg_payload);
                 x3d_pped_month_consumtion_detail_t month_consumtion_detail = {
-                        .id_0      = 0,
-                        .id_1      = 4,
-                        .id_2      = 0,
                         .month     = 11,
                         .month_f   = 6,
                         .day       = 22,
@@ -301,9 +273,11 @@ static void device_data_task(void *arg)
                         .other     = 33449,
                 };
 
-                reg_data.reg_payload_length = sizeof(month_consumtion_detail);
-                reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
-                memcpy(reg_data.reg_payload, &month_consumtion_detail, reg_data.reg_payload_length);
+                reg_data.reg_payload_length = sizeof(month_consumtion_detail) + 3;
+                reg_data.reg_payload[0]     = 0;
+                reg_data.reg_payload[1]     = 4;
+                reg_data.reg_payload[2]     = 0;
+                memcpy(&reg_data.reg_payload[3], &month_consumtion_detail, reg_data.reg_payload_length);
                 response = true;
             }
             break;
@@ -315,21 +289,15 @@ static void device_data_task(void *arg)
                 x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
                 if (sub_reg == 1)
                 {
-                    free(reg_data.reg_payload);
-
                     uint8_t data[]              = {0x01, 0x00, 0x39, 0x07};
                     reg_data.reg_payload_length = sizeof(data);
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
                     response = true;
                 }
                 else if (sub_reg == 2)
                 {
-                    free(reg_data.reg_payload);
-
                     uint8_t data[]              = {0x02, 0x00, 0x3f, 0x07, 0x39, 0x07};
                     reg_data.reg_payload_length = sizeof(data);
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
                     response = true;
                 }
@@ -352,7 +320,6 @@ static void device_data_task(void *arg)
                 ESP_LOG_BUFFER_HEX_LEVEL(TAG, reg_data.reg_payload, reg_data.reg_payload_length, ESP_LOG_INFO);
             }
         }
-        free(reg_data.reg_payload);
     }
     end_task(arg);
 }

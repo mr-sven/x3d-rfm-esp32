@@ -19,9 +19,7 @@ x3d_msg_t *test_x3d_proto_init_message(void)
     assert(msg->msg_header.head_len_u == 0);
     assert(msg->msg_header.device_id == 0x123456);
     assert(msg->msg_header.net == 2);
-    assert(msg->header_payload == NULL);
     assert(msg->header_payload_length == 0);
-    assert(msg->payload == NULL);
     assert(msg->payload_length == 0);
     assert(msg->header_magic == 0);
     return msg;
@@ -38,7 +36,6 @@ x3d_msg_t *test_x3d_proto_prepare_message_header_no_payload_no_magic(void)
     assert(msg->msg_header.msg_no == 1);
     assert(msg->msg_header.head_flags == 1);
     assert(msg->header_payload_length == 1);
-    assert(msg->header_payload != NULL);
     assert(msg->header_payload[0] == 0x85);
     assert(msg->msg_header.head_len == 8);
     return msg;
@@ -56,7 +53,6 @@ x3d_msg_t *test_x3d_proto_prepare_message_header_no_magic()
     assert(msg->msg_header.msg_no == 1);
     assert(msg->msg_header.head_flags == 1);
     assert(msg->header_payload_length == 3);
-    assert(msg->header_payload != NULL);
     assert(msg->header_payload[0] == 0x85);
     assert(msg->header_payload[1] == 0x98);
     assert(msg->header_payload[2] == 0x00);
@@ -78,7 +74,6 @@ x3d_msg_t *test_x3d_proto_prepare_message_header_no_payload(void)
     assert(msg->msg_header.head_flags == 1);
     assert(msg->header_magic == 1);
     assert(msg->header_payload_length == 3);
-    assert(msg->header_payload != NULL);
     assert(msg->header_payload[0] == 0x85);
     assert(msg->header_payload[1] == 0x00);
     assert(msg->header_payload[2] == 0x00);
@@ -101,7 +96,6 @@ x3d_msg_t *test_x3d_proto_prepare_message_header(void)
     assert(msg->msg_header.head_flags == 1);
     assert(msg->header_magic == 1);
     assert(msg->header_payload_length == 5);
-    assert(msg->header_payload != NULL);
     assert(msg->header_payload[0] == 0x85);
     assert(msg->header_payload[1] == 0x98);
     assert(msg->header_payload[2] == 0x00);
@@ -164,7 +158,6 @@ void test_x3d_proto_write_to_buffer(void)
     x3d_msg_t *msg = test_x3d_proto_prepare_message_header();
 
     msg->payload_length = 5;
-    msg->payload        = calloc(1, msg->payload_length);
     msg->payload[0]     = 1;
     msg->payload[1]     = 2;
     msg->payload[2]     = 3;

@@ -16,6 +16,12 @@
 
 #include "x3d_types.h"
 
+#define X3D_PPED_IDX_PAYLOAD_TARGET_DEVICE_ID 2
+#define X3D_PPED_IDX_PAYLOAD_REG              5
+#define X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD      7
+
+#define X3D_MAX_PPED_REG_PAYLOAD_SIZE         (X3D_MAX_PAYLOAD_SIZE - X3D_PPED_IDX_PAYLOAD_REG_PAYLOAD)
+
 typedef struct
 {
     uint32_t peer_device_id; // device id of peer device
@@ -31,15 +37,12 @@ typedef struct
         };
         uint16_t reg_u; // register union
     };
-    int reg_payload_length; // length of plaload
-    uint8_t *reg_payload;   // pointer to payload data
+    int reg_payload_length;                             // length of payload
+    uint8_t reg_payload[X3D_MAX_PPED_REG_PAYLOAD_SIZE]; // reg payload data
 } x3d_pped_register_t;
 
 typedef struct
 {
-    uint8_t id_0;
-    uint8_t id_1;
-    uint8_t id_2;
     union
     {
         struct

@@ -31,13 +31,5 @@ static void __attribute__((__unused__)) delete_msg(x3d_msg_t *msg)
     {
         return;
     }
-    if (msg->header_payload != NULL)
-    {
-        free(msg->header_payload);
-    }
-    if (msg->payload != NULL)
-    {
-        free(msg->payload);
-    }
     free(msg);
 }

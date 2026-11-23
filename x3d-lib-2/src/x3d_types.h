@@ -13,6 +13,8 @@
 
 #include <stdint.h>
 
+#include "x3d_const.h"
+
 typedef struct x3d_context_t
 {
     uint32_t device_id;
@@ -51,9 +53,9 @@ typedef struct __attribute__((__packed__))
 typedef struct
 {
     x3d_msg_header_t msg_header;
-    uint8_t *header_payload;
+    uint8_t header_payload[X3D_MAX_HEADER_PAYLOAD_SIZE];
     int header_payload_length;
     uint16_t header_magic;
-    uint8_t *payload;
+    uint8_t payload[X3D_MAX_PAYLOAD_SIZE];
     int payload_length;
 } x3d_msg_t;

@@ -80,8 +80,8 @@ void test_x3d_pped_register_req(void)
             .peer_device_id     = 0x654321,
             .reg                = 1234,
             .reg_payload_length = 2,
-            .reg_payload        = (uint8_t[]){0xE1, 0x10},
     };
+    x3d_write_le_u16(4321, reg_data.reg_payload, 0);
     uint8_t buffer[64];
     x3d_pped_register_req(buffer, &ctx, &reg_data);
 
@@ -120,8 +120,9 @@ void test_x3d_pped_register_resp()
             .peer_device_id     = 0x123456,
             .reg                = 1234,
             .reg_payload_length = 6,
-            .reg_payload        = (uint8_t[]){0xE1, 0x10, 0x01, 0x02, 0x03, 0x04},
     };
+    x3d_write_le_u16(4321, reg_data.reg_payload, 0);
+    x3d_write_le_u32(0x04030201, reg_data.reg_payload, 2);
     uint8_t buffer[64];
     x3d_pped_register_resp(buffer, &ctx, &reg_data);
     // printCharInHexadecimal(buffer, buffer[0]);

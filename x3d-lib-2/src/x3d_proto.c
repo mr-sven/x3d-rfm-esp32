@@ -23,10 +23,6 @@
 #define X3D_HEADER_CKSUM_DROP_LEN 3
 #define X3D_HEADER_LENGTH_MASK    0x1f
 
-// len, addr, msg_no, msg_type, head_len, 3 byte device id, network, status, 2 byte header_crc, 2 byte crc
-#define X3D_MIN_PKT_SIZE          14
-#define X3D_MAX_PKT_SIZE          64
-
 #define header_crc_off(h_len)     (X3D_IDX_HEADER_LEN + h_len - sizeof(uint16_t))
 #define header_payload_len(h_len) (h_len - X3D_IDX_DEVICE_ID - sizeof(uint16_t))
 #define payload_len(p_len, h_len) (p_len - h_len - X3D_IDX_HEADER_LEN - sizeof(uint16_t))
@@ -129,7 +125,6 @@ x3d_msg_t *x3d_proto_parse_verify_msg(uint8_t *buffer)
 
     // copy header payload
     result->header_payload_length = header_payload_len(result->msg_header.head_len);
-    result->header_payload        = calloc(result->header_payload_length, sizeof(uint8_t));
     memcpy(result->header_payload, &buffer[X3D_IDX_HEADER_PAYLOAD], result->header_payload_length);
 
     // status + magic
@@ -140,17 +135,16 @@ x3d_msg_t *x3d_proto_parse_verify_msg(uint8_t *buffer)
         x3d_read_le_u16(&magic_id, result->header_payload, result->header_payload_length - sizeof(uint16_t));
         result->header_magic = dec_magic_id(magic_id, result->msg_header.device_id);
     }
+    else
+    {
+        result->header_magic = 0;
+    }
 
     // copy data payload
     result->payload_length = payload_len(result->msg_header.pkt_len, result->msg_header.head_len);
     if (result->payload_length > 0)
     {
-        result->payload = calloc(result->payload_length, sizeof(uint8_t));
         memcpy(result->payload, &buffer[payload_off(result->msg_header.head_len)], result->payload_length);
-    }
-    else
-    {
-        result->payload = NULL;
     }
 
     return result;
@@ -166,9 +160,7 @@ x3d_msg_t *x3d_proto_init_message(uint8_t msg_type, uint32_t device_id, uint8_t 
     res->msg_header.head_len_u = 0;
     res->msg_header.device_id  = device_id;
     res->msg_header.net        = network;
-    res->header_payload        = NULL;
     res->header_payload_length = 0;
-    res->payload               = NULL;
     res->payload_length        = 0;
     res->header_magic          = 0;
     return res;
@@ -202,12 +194,7 @@ void x3d_proto_prepare_message_header(x3d_msg_t *msg, uint8_t *msg_no, uint8_t f
     if (header_data != NULL && header_data_len > 0)
     {
         msg->header_payload_length += header_data_len;
-        msg->header_payload = calloc(1, msg->header_payload_length);
         memcpy(&msg->header_payload[1], header_data, header_data_len);
-    }
-    else
-    {
-        msg->header_payload = calloc(1, msg->header_payload_length);
     }
 
     msg->header_payload[0] = status;
@@ -222,7 +209,7 @@ void x3d_proto_write_to_buffer(uint8_t *buffer, x3d_msg_t *msg)
     msg->msg_header.pkt_len = X3D_IDX_HEADER_LEN + msg->msg_header.head_len + msg->payload_length + sizeof(uint16_t);
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-    memcpy(buffer, &msg->msg_header, sizeof(x3d_msg_t));
+    memcpy(buffer, &msg->msg_header, sizeof(x3d_msg_header_t));
 #else
     buffer[data_p++] = msg->msg_header.pkt_len;
     buffer[data_p++] = msg->msg_header.pkt_addr;
