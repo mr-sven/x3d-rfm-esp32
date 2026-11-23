@@ -11,6 +11,8 @@ Note: work in progress
 - based on Semtech SX1211
 - manual CRC
 - CCITT Data Whitening
+- Maximum packet size: 64
+- Air gap between packets: 18-50 ms
 
 Payload format:
 - Preamble          {32} 0xaaaaaaaa
@@ -21,7 +23,7 @@ Payload format:
 
 The RFM69HW module is based on Semtech SX1231H. The nearest target frequency is 868.950012 MHz, the internal AFC is able to take care on this gap.
 
-X3D Protocol analysis: [X3D-Protocol.md](X3D-Protocol.md)
+X3D Protocol analysis: [protocol/README.md](protocol/README.md)
 
 X3D Messages: [X3D-Message-Log.md](X3D-Message-Log.md)
 
