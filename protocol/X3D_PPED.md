@@ -158,7 +158,7 @@ if(x3d_pped_parse_register_req(rx_buffer, &x3d_ctx, &reg_data) == 0)
 ## Calybox 1020 WT Register
 
 | requestor      | calybox | info |
-|:---------------|:---- ---|:-----|
+|:---------------|:--------|:-----|
 | 11 00 ff ff    | 11 80 03 00 01 e5 01 05 | 17: 3 Phase? e5(229) Voltage? |
 | 10 00          | 10 80 30 30 00 3f 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 | 16: ???  2 = number heaters? |
 | 11 04 01 00    | 11 84 01 00 39 07 | 1041-1: global modes? |
