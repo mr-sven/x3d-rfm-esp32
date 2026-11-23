@@ -76,3 +76,32 @@ reg: 784 sub: 1024
 | 11 43 02 00 00 00 f1 07 | ??? | 785-2: heater 2 power safe
 | 11 43 02 00 00 00 f6 07 | ??? | 785-2: heater 2 combined mode
 | 11 43 02 00 00 00 f4 07 | ??? | 785-2: heater 2 defrost
+
+
+10 82 
+00 04 10 
+6b 16 1a 
+6
+ b = 11
+16 = 22
+1a = 26
+ff ff ff ff 
+b5 2d 05 00 = 339.381kWh month 10
+09 31 03 00 = 209.161kWh month 11
+ff ff ff ff 
+ff ff ff ff 
+ff ff ff ff 
+ff ff ff ff 
+ff ff ff ff
+
+10 83 
+00 04 00 
+6
+ b = 11
+16 = 22
+1a = 26
+9a 4d 01 00  85402
+ff ff ff ff 
+84 9e 00 00  40580
+42 c2 00 00  49730
+a9 82 00 00  33449

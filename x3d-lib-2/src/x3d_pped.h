@@ -35,6 +35,29 @@ typedef struct
     uint8_t *reg_payload;   // pointer to payload data
 } x3d_pped_register_t;
 
+typedef struct
+{
+    uint8_t id_0;
+    uint8_t id_1;
+    uint8_t id_2;
+    union
+    {
+        struct
+        {
+            uint8_t month : 4;
+            uint8_t month_f : 4;
+        };
+        uint8_t month_u; // register union
+    };
+    uint8_t day;
+    uint8_t year;
+    uint32_t heating;
+    uint32_t cooling;
+    uint32_t hot_water;
+    uint32_t outlets;
+    uint32_t other;
+} x3d_pped_month_consumtion_detail_t;
+
 /**
  * @brief Prepares X3D PPED pairing request.
  *

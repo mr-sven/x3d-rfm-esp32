@@ -73,6 +73,15 @@ static inline int x3d_write_le_u24(uint32_t val, uint8_t *buffer, int pBuffer)
     return pBuffer;
 }
 
+static inline int x3d_write_le_u32(uint32_t val, uint8_t *buffer, int pBuffer)
+{
+    buffer[pBuffer++] = val & 0xff;
+    buffer[pBuffer++] = (val >> 8) & 0xff;
+    buffer[pBuffer++] = (val >> 16) & 0xff;
+    buffer[pBuffer++] = (val >> 24) & 0xff;
+    return pBuffer;
+}
+
 static inline int x3d_get_highest_bit(uint16_t value)
 {
     return sizeof(unsigned int) * 8 - __builtin_clz(value) - 1;

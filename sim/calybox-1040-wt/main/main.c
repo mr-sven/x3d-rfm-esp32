@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -146,32 +147,10 @@ static void device_data_task(void *arg)
         }
 
         ESP_LOGI(TAG, "Read reg: %d pl: %d", reg_data.reg, reg_data.reg_payload_length);
-        if (reg_data.reg_payload_length > 0)
-        {
-            ESP_LOG_BUFFER_HEX_LEVEL(TAG, reg_data.reg_payload, reg_data.reg_payload_length, ESP_LOG_INFO);
-        }
 
         bool response = false;
         switch (reg_data.reg)
         {
-
-        case 17:
-            if (reg_data.reg_payload_length == 2)
-            {
-                uint16_t sub_reg;
-                x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
-                if (sub_reg == 0xffff)
-                {
-                    free(reg_data.reg_payload);
-
-                    uint8_t data[]              = {0x03, 0x00, 0x01, 0xe5, 0x01, 0x05};
-                    reg_data.reg_payload_length = sizeof(data);
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
-                    memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
-                    response = true;
-                }
-            }
-            break;
 
         case 16:
             if (reg_data.reg_payload_length == 0)
@@ -186,26 +165,16 @@ static void device_data_task(void *arg)
             }
             break;
 
-        case 1041:
+        case 17:
             if (reg_data.reg_payload_length == 2)
             {
                 uint16_t sub_reg;
                 x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
-                if (sub_reg == 1)
+                if (sub_reg == 0xffff)
                 {
                     free(reg_data.reg_payload);
 
-                    uint8_t data[]              = {0x01, 0x00, 0x39, 0x07};
-                    reg_data.reg_payload_length = sizeof(data);
-                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
-                    memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
-                    response = true;
-                }
-                else if (sub_reg == 2)
-                {
-                    free(reg_data.reg_payload);
-
-                    uint8_t data[]              = {0x02, 0x00, 0x3f, 0x07, 0x39, 0x07};
+                    uint8_t data[]              = {0x03, 0x00, 0x01, 0xe5, 0x01, 0x05};
                     reg_data.reg_payload_length = sizeof(data);
                     reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
@@ -251,7 +220,104 @@ static void device_data_task(void *arg)
                 {
                     free(reg_data.reg_payload);
 
-                    uint8_t data[]              = {0x01, 0x00, 0x1c, 0x08};
+                    reg_data.reg_payload_length = 4;
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                    int data_p                  = x3d_write_le_u16(1, reg_data.reg_payload, 0);
+                    data_p                      = x3d_write_le_u16(2076, reg_data.reg_payload, data_p);
+                    response                    = true;
+                }
+                else if (sub_reg == 2)
+                {
+                    free(reg_data.reg_payload);
+
+                    reg_data.reg_payload_length = 6;
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                    int data_p                  = x3d_write_le_u16(1, reg_data.reg_payload, 0);
+                    data_p                      = x3d_write_le_u16(0x8000, reg_data.reg_payload, data_p);
+                    data_p                      = x3d_write_le_u16(2076, reg_data.reg_payload, data_p);
+                    response                    = true;
+                }
+            }
+            break;
+        case 528:
+            if (reg_data.reg_payload_length == 3)
+            {
+                uint32_t date_req;
+                x3d_read_le_u24(&date_req, reg_data.reg_payload, 0);
+
+                if (date_req == 0xf00400)
+                {
+                    free(reg_data.reg_payload);
+
+                    reg_data.reg_payload_length = 3 + 3 + (8 * 4);
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+
+                    int data_p = x3d_write_le_u24(0x100400, reg_data.reg_payload, 0);
+                    data_p     = x3d_write_le_u24(0x1a166b, reg_data.reg_payload, data_p);
+                    data_p     = x3d_write_le_u32(90000, reg_data.reg_payload, data_p);      // month 9
+                    data_p     = x3d_write_le_u32(339381, reg_data.reg_payload, data_p);     // month 10
+                    data_p     = x3d_write_le_u32(209161, reg_data.reg_payload, data_p);     // month 11
+                    data_p     = x3d_write_le_u32(120000, reg_data.reg_payload, data_p);     // month 12
+                    data_p     = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
+                    data_p     = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
+                    data_p     = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
+                    data_p     = x3d_write_le_u32(0xffffffff, reg_data.reg_payload, data_p); // ff invalid
+                    response   = true;
+                }
+                else
+                {
+                    /*
+                    int data_p = x3d_write_le_u24(0x100400, reg_data.reg_payload, 0);
+                    data_p     = x3d_write_le_u24(0x1a166b, reg_data.reg_payload, data_p);
+                    data_p     = x3d_write_le_u32(10000, reg_data.reg_payload, data_p); // month 1
+                    data_p     = x3d_write_le_u32(20000, reg_data.reg_payload, data_p); // month 2
+                    data_p     = x3d_write_le_u32(30000, reg_data.reg_payload, data_p); // month 3
+                    data_p     = x3d_write_le_u32(40000, reg_data.reg_payload, data_p); // month 4
+                    data_p     = x3d_write_le_u32(50000, reg_data.reg_payload, data_p); // month 5
+                    data_p     = x3d_write_le_u32(60000, reg_data.reg_payload, data_p); // month 6
+                    data_p     = x3d_write_le_u32(70000, reg_data.reg_payload, data_p); // month 7
+                    data_p     = x3d_write_le_u32(80000, reg_data.reg_payload, data_p); // month 8
+                    */
+                }
+            }
+            break;
+
+        case 784:
+            if (reg_data.reg_payload_length == 3)
+            {
+                free(reg_data.reg_payload);
+                x3d_pped_month_consumtion_detail_t month_consumtion_detail = {
+                        .id_0      = 0,
+                        .id_1      = 4,
+                        .id_2      = 0,
+                        .month     = 11,
+                        .month_f   = 6,
+                        .day       = 22,
+                        .year      = 26,
+                        .heating   = 85402,
+                        .cooling   = 0xffffffff,
+                        .hot_water = 40580,
+                        .outlets   = 49730,
+                        .other     = 33449,
+                };
+
+                reg_data.reg_payload_length = sizeof(month_consumtion_detail);
+                reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                memcpy(reg_data.reg_payload, &month_consumtion_detail, reg_data.reg_payload_length);
+                response = true;
+            }
+            break;
+
+        case 1041:
+            if (reg_data.reg_payload_length == 2)
+            {
+                uint16_t sub_reg;
+                x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
+                if (sub_reg == 1)
+                {
+                    free(reg_data.reg_payload);
+
+                    uint8_t data[]              = {0x01, 0x00, 0x39, 0x07};
                     reg_data.reg_payload_length = sizeof(data);
                     reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
@@ -261,7 +327,7 @@ static void device_data_task(void *arg)
                 {
                     free(reg_data.reg_payload);
 
-                    uint8_t data[]              = {0x02, 0x00, 0x00, 0x80, 0x1c, 0x08};
+                    uint8_t data[]              = {0x02, 0x00, 0x3f, 0x07, 0x39, 0x07};
                     reg_data.reg_payload_length = sizeof(data);
                     reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
                     memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
@@ -269,34 +335,8 @@ static void device_data_task(void *arg)
                 }
             }
             break;
-        case 528:
-            if (reg_data.reg_payload_length == 3)
-            {
-                free(reg_data.reg_payload);
-
-                uint8_t data[]              = {0x00, 0x04, 0x10, 0x6b, 0x16, 0x1a, 0xff, 0xff, 0xff, 0xff, 0xb5, 0x2d, 0x05, 0x00, 0x09, 0x31, 0x03, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-                reg_data.reg_payload_length = sizeof(data);
-                reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
-                memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
-                response = true;
-            }
-            break;
-
-        case 784:
-            if (reg_data.reg_payload_length == 3)
-            {
-                free(reg_data.reg_payload);
-
-                uint8_t data[]              = {0x00, 0x04, 0x00, 0x6b, 0x16, 0x1a, 0x9a, 0x4d, 0x01, 0x00, 0xff, 0xff, 0xff, 0xff, 0x84, 0x9e, 0x00, 0x00, 0x42, 0xc2, 0x00, 0x00, 0xa9, 0x82, 0x00, 0x00};
-                reg_data.reg_payload_length = sizeof(data);
-                reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
-                memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
-                response = true;
-            }
-            break;
         default:
-            free(reg_data.reg_payload);
-            continue;
+            break;
         }
 
         if (response)
@@ -304,6 +344,13 @@ static void device_data_task(void *arg)
             x3d_pped_register_resp(x3d_tx_buffer, &x3d_ctx, &reg_data);
             vTaskDelayUntil(&last_send_time, pdMS_TO_TICKS(delay));
             x3d_transmit();
+        }
+        else
+        {
+            if (reg_data.reg_payload_length > 0)
+            {
+                ESP_LOG_BUFFER_HEX_LEVEL(TAG, reg_data.reg_payload, reg_data.reg_payload_length, ESP_LOG_INFO);
+            }
         }
         free(reg_data.reg_payload);
     }
