@@ -13,6 +13,13 @@
 
 #include <stdint.h>
 
+typedef struct x3d_context_t
+{
+    uint32_t device_id;
+    uint8_t msg_no;
+    uint16_t magic_id;
+} x3d_context_t;
+
 typedef struct __attribute__((__packed__))
 {
     uint8_t pkt_len;
