@@ -18,7 +18,7 @@
  * @brief Handle for SX device, contains SPI handle and some data
  *
  */
-typedef struct sx1231_context_t* sx1231_handle_t;
+typedef struct sx1231_context_t *sx1231_handle_t;
 
 /**
  * @brief inits the SX1231 connection and retuns device handle
@@ -27,7 +27,7 @@ typedef struct sx1231_context_t* sx1231_handle_t;
  * @param out_handle SX1231 handle
  * @return esp_err_t
  */
-esp_err_t sx1231_init(spi_device_handle_t spi, sx1231_handle_t* out_handle);
+esp_err_t sx1231_init(spi_device_handle_t spi, sx1231_handle_t *out_handle);
 
 /**
  * @brief configures the OCP register
@@ -58,3 +58,4 @@ esp_err_t sx1231_pa_level(sx1231_handle_t handle, bool pa0_on, bool pa1_on, bool
 esp_err_t sx1231_receive_begin(sx1231_handle_t handle);
 esp_err_t sx1231_get_buffer(sx1231_handle_t handle, uint8_t *buffer);
 esp_err_t sx1231_transmit(sx1231_handle_t handle, uint8_t *buffer, size_t size);
+sx1231_mode_t sx1231_get_mode(sx1231_handle_t handle);
