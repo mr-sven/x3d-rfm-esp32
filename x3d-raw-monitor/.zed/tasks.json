@@ -1,0 +1,30 @@
+[
+  {
+    "label": "CMake Clean",
+    "command": "rm -rf build; mkdir build",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "allow_concurrent_runs": false,
+    "hide": "on_success",
+  },
+  {
+    "label": "CMake Config",
+    "command": "source ~/.espressif/tools/activate_idf_v6.1.sh; cmake ..",
+    "cwd": "$ZED_WORKTREE_ROOT/build",
+    "allow_concurrent_runs": false,
+    "hide": "on_success",
+  },
+  {
+    "label": "CMake Build",
+    "command": "source ~/.espressif/tools/activate_idf_v6.1.sh; cmake --build . --config Debug --target all",
+    "cwd": "$ZED_WORKTREE_ROOT/build",
+    "allow_concurrent_runs": false,
+    "hide": "never",
+  },
+  {
+    "label": "CMake Flash",
+    "command": "source ~/.espressif/tools/activate_idf_v6.1.sh; cmake --build . --config Debug --target flash",
+    "cwd": "$ZED_WORKTREE_ROOT/build",
+    "allow_concurrent_runs": false,
+    "hide": "never",
+  },
+]

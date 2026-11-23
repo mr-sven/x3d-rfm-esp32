@@ -1,0 +1,347 @@
+/**
+ * @file main.c
+ * @author Sven Fabricius (sven.fabricius@livediesel.de)
+ * @brief Direct IDF Implementation of X3D ESP32 Gateway
+ * @version 0.1
+ * @date 2023-11-15
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#include "esp_system.h"
+#include "esp_log.h"
+
+#include "rfm.h"
+#include "x3d.h"
+#include "x3d_bytes.h"
+
+#define MODE_NONE 0
+#define MODE_PAIR 1
+
+static const char TAG[] = "MAIN";
+
+x3d_context_t x3d_ctx = {
+        .device_id = 0xe44dce,
+        .magic_id  = 1,
+        .msg_no    = 1,
+};
+
+uint8_t x3d_buffer[64];
+uint8_t x3d_tx_buffer[64];
+TickType_t x3d_last_rx_ts;
+
+TaskHandle_t processing_task_handle = NULL;
+
+/**
+ * @brief Wrapper for xTaskCreate to check if a processing task is already executed
+ *
+ * @param pxTaskCode
+ * @param pcName
+ * @param usStackDepth
+ * @param pvParameters
+ */
+void execute_task(TaskFunction_t pxTaskCode, const char *const pcName, const configSTACK_DEPTH_TYPE usStackDepth, void *const pvParameters)
+{
+    if (processing_task_handle != NULL)
+    {
+        ESP_LOGE(TAG, "X3D message processing in progress");
+        return;
+    }
+    ESP_LOGI(TAG, "Start: %s", pcName);
+    xTaskCreate(pxTaskCode, pcName, usStackDepth, pvParameters, 10, &processing_task_handle);
+}
+
+/**
+ * @brief Task end funktion.
+ * Set status to idle, optional frees arg pointer and deletes task.
+ *
+ * @param arg optional pointer to data to free
+ */
+static void __attribute__((noreturn)) end_task(void *arg)
+{
+    if (arg != NULL)
+    {
+        free(arg);
+    }
+    processing_task_handle = NULL;
+    vTaskDelete(NULL);
+    while (1)
+        ; // should not be reached
+}
+
+/**
+ * @brief Task end funktion.
+ * Set status to idle, optional frees arg pointer and deletes task.
+ *
+ * @param arg optional pointer to data to free
+ */
+static void __attribute__((noreturn)) next_task(TaskFunction_t pxTaskCode, const char *const pcName, const configSTACK_DEPTH_TYPE usStackDepth, void *const pvParameters, void *arg)
+{
+    if (arg != NULL)
+    {
+        free(arg);
+    }
+    processing_task_handle = NULL;
+    execute_task(pxTaskCode, pcName, usStackDepth, pvParameters);
+    vTaskDelete(NULL);
+    while (1)
+        ; // should not be reached
+}
+
+void x3d_processor(uint8_t *buffer)
+{
+    // store last rx time to check if air is free.
+    x3d_last_rx_ts = xTaskGetTickCount();
+
+    // ESP_LOG_BUFFER_HEX_LEVEL(TAG, buffer, buffer[0], ESP_LOG_INFO);
+
+    memcpy(x3d_buffer, buffer, buffer[0]);
+    if (processing_task_handle != NULL)
+    {
+        xTaskNotifyGive(processing_task_handle);
+    }
+}
+
+void x3d_transmit(void)
+{
+    // TODO: check x3d_last_rx_ts for free air
+    TickType_t last_send_time = xTaskGetTickCount();
+    do
+    {
+        // ESP_LOG_BUFFER_HEX_LEVEL(TAG, x3d_tx_buffer, x3d_tx_buffer[0], ESP_LOG_INFO);
+        vTaskDelayUntil(&last_send_time, pdMS_TO_TICKS(X3D_MSG_DELAY_MS));
+        rfm_transfer(x3d_tx_buffer, x3d_tx_buffer[0]);
+    } while (x3d_proto_dec_retry(x3d_tx_buffer) > 0);
+    rfm_receive();
+}
+
+static void device_data_task(void *arg)
+{
+    for (;;)
+    {
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+        x3d_pped_register_t reg_data;
+        if (x3d_pped_parse_register_req(x3d_buffer, &x3d_ctx, &reg_data) != 0)
+        {
+            continue;
+        }
+
+        reg_data.retry_cnt++;
+        int delay                 = reg_data.retry_cnt * X3D_MSG_DELAY_MS;
+        TickType_t last_send_time = xTaskGetTickCount();
+
+        if (reg_data.peer_device_id != 0x68d9d7)
+        {
+            free(reg_data.reg_payload);
+            continue;
+        }
+
+        ESP_LOGI(TAG, "Read reg: %d pl: %d", reg_data.reg, reg_data.reg_payload_length);
+        if (reg_data.reg_payload_length > 0)
+        {
+            ESP_LOG_BUFFER_HEX_LEVEL(TAG, reg_data.reg_payload, reg_data.reg_payload_length, ESP_LOG_INFO);
+        }
+
+        bool response = false;
+        switch (reg_data.reg)
+        {
+
+        case 17:
+            if (reg_data.reg_payload_length == 2)
+            {
+                uint16_t sub_reg;
+                x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
+                if (sub_reg == 0xffff)
+                {
+                    free(reg_data.reg_payload);
+
+                    uint8_t data[]              = {0x03, 0x00, 0x01, 0xe5, 0x01, 0x05};
+                    reg_data.reg_payload_length = sizeof(data);
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                    memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                    response = true;
+                }
+            }
+            break;
+
+        case 16:
+            if (reg_data.reg_payload_length == 0)
+            {
+                free(reg_data.reg_payload);
+
+                uint8_t data[]              = {0x30, 0x30, 0x00, 0x3f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00};
+                reg_data.reg_payload_length = sizeof(data);
+                reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                response = true;
+            }
+            break;
+
+        case 1041:
+            if (reg_data.reg_payload_length == 2)
+            {
+                uint16_t sub_reg;
+                x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
+                if (sub_reg == 1)
+                {
+                    free(reg_data.reg_payload);
+
+                    uint8_t data[]              = {0x01, 0x00, 0x39, 0x07};
+                    reg_data.reg_payload_length = sizeof(data);
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                    memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                    response = true;
+                }
+                else if (sub_reg == 2)
+                {
+                    free(reg_data.reg_payload);
+
+                    uint8_t data[]              = {0x02, 0x00, 0x3f, 0x07, 0x39, 0x07};
+                    reg_data.reg_payload_length = sizeof(data);
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                    memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                    response = true;
+                }
+            }
+            break;
+
+        case 273:
+            if (reg_data.reg_payload_length == 2)
+            {
+                uint16_t sub_reg;
+                x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
+                if (sub_reg == 1)
+                {
+                    free(reg_data.reg_payload);
+
+                    uint8_t data[]              = {0x01, 0x00, 0xf6, 0x22};
+                    reg_data.reg_payload_length = sizeof(data);
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                    memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                    response = true;
+                }
+                else if (sub_reg == 2)
+                {
+                    free(reg_data.reg_payload);
+
+                    uint8_t data[]              = {0x02, 0x00, 0xf6, 0x27, 0xf6, 0x22};
+                    reg_data.reg_payload_length = sizeof(data);
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                    memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                    response = true;
+                }
+            }
+            break;
+
+        case 274:
+            if (reg_data.reg_payload_length == 2)
+            {
+                uint16_t sub_reg;
+                x3d_read_le_u16(&sub_reg, reg_data.reg_payload, 0);
+                if (sub_reg == 1)
+                {
+                    free(reg_data.reg_payload);
+
+                    uint8_t data[]              = {0x01, 0x00, 0x1c, 0x08};
+                    reg_data.reg_payload_length = sizeof(data);
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                    memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                    response = true;
+                }
+                else if (sub_reg == 2)
+                {
+                    free(reg_data.reg_payload);
+
+                    uint8_t data[]              = {0x02, 0x00, 0x00, 0x80, 0x1c, 0x08};
+                    reg_data.reg_payload_length = sizeof(data);
+                    reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                    memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                    response = true;
+                }
+            }
+            break;
+        case 528:
+            if (reg_data.reg_payload_length == 3)
+            {
+                free(reg_data.reg_payload);
+
+                uint8_t data[]              = {0x00, 0x04, 0x10, 0x6b, 0x16, 0x1a, 0xff, 0xff, 0xff, 0xff, 0xb5, 0x2d, 0x05, 0x00, 0x09, 0x31, 0x03, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+                reg_data.reg_payload_length = sizeof(data);
+                reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                response = true;
+            }
+            break;
+
+        case 784:
+            if (reg_data.reg_payload_length == 3)
+            {
+                free(reg_data.reg_payload);
+
+                uint8_t data[]              = {0x00, 0x04, 0x00, 0x6b, 0x16, 0x1a, 0x9a, 0x4d, 0x01, 0x00, 0xff, 0xff, 0xff, 0xff, 0x84, 0x9e, 0x00, 0x00, 0x42, 0xc2, 0x00, 0x00, 0xa9, 0x82, 0x00, 0x00};
+                reg_data.reg_payload_length = sizeof(data);
+                reg_data.reg_payload        = malloc(reg_data.reg_payload_length);
+                memcpy(reg_data.reg_payload, data, reg_data.reg_payload_length);
+                response = true;
+            }
+            break;
+        default:
+            free(reg_data.reg_payload);
+            continue;
+        }
+
+        if (response)
+        {
+            x3d_pped_register_resp(x3d_tx_buffer, &x3d_ctx, &reg_data);
+            vTaskDelayUntil(&last_send_time, pdMS_TO_TICKS(delay));
+            x3d_transmit();
+        }
+        free(reg_data.reg_payload);
+    }
+    end_task(arg);
+}
+
+static void device_pairing_task(void *arg)
+{
+    for (;;)
+    {
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        uint8_t retry_cnt;
+        uint32_t peer_device_id;
+        uint16_t peer_magic_id;
+
+        if (x3d_pped_parse_pairing_req(x3d_buffer, &peer_device_id, &retry_cnt, &peer_magic_id) != 0)
+        {
+            continue;
+        }
+
+        retry_cnt++;
+        int delay                 = retry_cnt * X3D_MSG_DELAY_MS;
+        TickType_t last_send_time = xTaskGetTickCount();
+
+        x3d_pped_pairing_resp(x3d_tx_buffer, &x3d_ctx, peer_device_id);
+
+        vTaskDelayUntil(&last_send_time, pdMS_TO_TICKS(delay));
+        x3d_transmit();
+
+        next_task(device_data_task, "device_data_task", 2048, NULL, arg);
+    }
+    end_task(arg);
+}
+
+void app_main(void)
+{
+    ESP_ERROR_CHECK(rfm_init());
+    vTaskDelay(pdMS_TO_TICKS(5000));
+    // execute_task(device_pairing_task, "device_pairing_task", 2048, NULL);
+    execute_task(device_data_task, "device_data_task", 2048, NULL);
+}
